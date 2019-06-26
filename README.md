@@ -1,5 +1,7 @@
 # Channels
 
+[![Build status](https://ci.appveyor.com/api/projects/status/10jpolule81p18m6?svg=true)](https://ci.appveyor.com/project/rikdev/channels)
+
 The `Channels` library is an extended implementation of a managed signals/slots
 system and is used for communication between threads.
 The library includes types like `channel`, `buffered_channel`,
