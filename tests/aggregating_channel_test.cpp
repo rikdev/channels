@@ -180,8 +180,9 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		}
 		SECTION("for channel with shared_state") {
 			const transmitter<channel_type> transmitter;
+			const channel_type& channel = transmitter.get_channel();
 
-			CHECK(transmitter.is_valid());
+			CHECK(channel.is_valid());
 		}
 	}
 	SECTION("applying aggregator for channel without callbacks") {
@@ -211,15 +212,16 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 
 		using channel_type = aggregating_channel<callback_result(int)>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 		tools::executor executor;
 
-		const connection connection1 = transmitter.connect(
+		const connection connection1 = channel.connect(
 			[](int) -> callback_result { throw std::runtime_error{"callback 1 exception"}; });
-		const connection connection2 = transmitter.connect(
+		const connection connection2 = channel.connect(
 			[](const int arg) { return callback_result{2, arg}; });
-		const connection connection3 = transmitter.connect(
+		const connection connection3 = channel.connect(
 			&executor, [](int) -> callback_result { throw std::runtime_error{"callback 3 exception"}; });
-		const connection connection4 = transmitter.connect(
+		const connection connection4 = channel.connect(
 			&executor, [](const int arg) { return callback_result{4, arg}; });
 
 		SECTION("testing with aggregator that just collects callback result") {
@@ -287,14 +289,17 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		}
 		SECTION("comparing equal channels") {
 			transmitter<channel_type> transmitter;
+			const channel_type& channel = transmitter.get_channel();
 
-			CHECK(transmitter == transmitter);
+			CHECK(channel == channel);
 		}
 		SECTION("comparing not equal channels") {
 			transmitter<channel_type> transmitter1;
+			const channel_type& channel1 = transmitter1.get_channel();
 			transmitter<channel_type> transmitter2;
+			const channel_type& channel2 = transmitter2.get_channel();
 
-			CHECK_FALSE(transmitter1 == transmitter2);
+			CHECK_FALSE(channel1 == channel2);
 		}
 	}
 }

@@ -2,6 +2,7 @@
 #include "../channel_traits.h"
 #include "../connection.h"
 #include "../detail/compatibility/compile_features.h"
+#include "../detail/compatibility/type_traits.h"
 #include "callback.h"
 #include "sync_tracker.h"
 #include <forward_list>
@@ -19,14 +20,14 @@ public:
 	/// \return Reference to connection object. After calling this method, the old references remain valid.
 	/// \throw tracker_error If the `sync_release` method was called for this object.
 	template<typename Channel, typename Callback>
-	connection& connect(Channel& channel, Callback&& callback);
+	connection& connect(const Channel& channel, Callback&& callback);
 
 	/// Connects the `callback` to the `channel`.
 	/// \see channels::channel::connect
 	/// \return Reference to connection object. After calling this method, the old references remain valid.
 	/// \throw tracker_error If the `sync_release` method was called for this object.
 	template<typename Channel, typename Executor, typename Callback>
-	connection& connect(Channel& channel, Executor&& executor, Callback&& callback);
+	connection& connect(const Channel& channel, Executor&& executor, Callback&& callback);
 
 	/// Removes all connections and waits until all callbacks are completed.
 	/// \warning After call this method all references to connection objects are invalid.
@@ -44,9 +45,9 @@ private:
 // implementation
 
 template<typename Channel, typename Callback>
-connection& sync_connection_manager::connect(Channel& channel, Callback&& callback)
+connection& sync_connection_manager::connect(const Channel& channel, Callback&& callback)
 {
-	static_assert(is_channel_v<std::remove_reference_t<Channel>>, "Channel type must be channel");
+	static_assert(is_channel_v<detail::compatibility::remove_cvref_t<Channel>>, "Channel type must be channel");
 
 	connection c =
 		channel.connect(make_tracking_callback(tracker_.get_tracked_object(), std::forward<Callback>(callback)));
@@ -55,9 +56,9 @@ connection& sync_connection_manager::connect(Channel& channel, Callback&& callba
 
 template<typename Channel, typename Executor, typename Callback>
 connection& sync_connection_manager::connect(
-	Channel& channel, Executor&& executor, Callback&& callback)
+	const Channel& channel, Executor&& executor, Callback&& callback)
 {
-	static_assert(is_channel_v<std::remove_reference_t<Channel>>, "Channel type must be channel");
+	static_assert(is_channel_v<detail::compatibility::remove_cvref_t<Channel>>, "Channel type must be channel");
 
 	connection c = channel.connect(
 		std::forward<Executor>(executor),

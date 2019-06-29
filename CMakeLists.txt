@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # Declaring
 project(Channels
-  VERSION 0.1.0
+  VERSION 0.2.0
   DESCRIPTION "Another C++ signal/slot library"
   HOMEPAGE_URL "https://github.com/rikdev/channels"
   LANGUAGES CXX
@@ -58,6 +58,7 @@ target_sources(${LIBRARY_NAME}
   include/channels/detail/compatibility/compile_features.h
   include/channels/detail/compatibility/functional.h
   include/channels/detail/compatibility/shared_mutex.h
+  include/channels/detail/compatibility/type_traits.h
   include/channels/detail/compatibility/utility.h
   include/channels/utility/callback.h
   include/channels/utility/send_once_limiter.h

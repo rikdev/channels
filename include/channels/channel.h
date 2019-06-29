@@ -80,11 +80,12 @@ public:
 	/// \warning Calling this method from the callback function will deadlock.
 	/// \return A `channels::connection` object that controls the current connection.
 	/// \warning When connection object is destroyed the connection will be disconnected.
+	/// \note Callback function will be destroyed only when the connection is disconnected.
 	/// \throw channel_error If `is_valid() == false`.
 	/// \throws Any exception thrown by the copy or move constructors of callback.
 	/// \pre `is_valid() == true`.
 	template<typename Callback>
-	CHANNELS_NODISCARD connection connect(Callback&& callback);
+	CHANNELS_NODISCARD connection connect(Callback&& callback) const;
 
 	/// Same as previous method `channel::connect` but additionally has the parameter executor.
 	/// When the transmitter sends values, the channel wraps them and the callback into a functional object with an
@@ -102,7 +103,7 @@ public:
 	///         constructors of `executor`.
 	/// \pre `is_valid() == true`.
 	template<typename Executor, typename Callback>
-	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback);
+	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback) const;
 
 protected:
 	struct make_shared_state_tag {};
@@ -141,7 +142,7 @@ struct channel_traits<channel<Ts...>> {
 
 template<typename... Ts>
 template<typename Callback>
-connection channel<Ts...>::connect(Callback&& callback)
+connection channel<Ts...>::connect(Callback&& callback) const
 {
 	if (!is_valid())
 		throw channel_error{"channel: has no state"};
@@ -152,7 +153,7 @@ connection channel<Ts...>::connect(Callback&& callback)
 
 template<typename... Ts>
 template<typename Executor, typename Callback>
-connection channel<Ts...>::connect(Executor&& executor, Callback&& callback)
+connection channel<Ts...>::connect(Executor&& executor, Callback&& callback) const
 {
 	if (!is_valid())
 		throw channel_error{"channel: has no state"};

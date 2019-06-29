@@ -35,11 +35,10 @@ connection::~connection() noexcept
 
 void connection::disconnect() noexcept
 {
-	const std::shared_ptr<detail::shared_state_base> shared_state = shared_state_.lock();
-	if (!shared_state)
+	if (!shared_state_)
 		return;
 
-	shared_state->remove(socket_);
+	shared_state_->remove(socket_);
 
 	shared_state_.reset();
 	socket_ = nullptr;
@@ -47,15 +46,15 @@ void connection::disconnect() noexcept
 
 bool connection::is_connected() const noexcept
 {
-	return !shared_state_.expired();
+	return static_cast<bool>(shared_state_);
 }
 
 connection::connection(
-	std::weak_ptr<detail::shared_state_base> shared_state, detail::socket_base* const socket) noexcept
+	std::shared_ptr<detail::shared_state_base> shared_state, detail::socket_base* const socket) noexcept
 	: shared_state_{std::move(shared_state)}
 	, socket_{socket}
 {
-	assert(!shared_state_.expired()); // NOLINT
+	assert(shared_state_); // NOLINT
 	assert(socket_); // NOLINT
 }
 

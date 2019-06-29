@@ -1,50 +1,95 @@
 #pragma once
 #include "channel_traits.h"
+#include "detail/compatibility/compile_features.h"
 #include <utility>
 
 namespace channels {
 
-/// A transmitter is a channel that can send values.
-/// \tparam Channel A base channel type.
+/// A class `transmitter` is the side of the channel that sends the values (like `std::promise`).
+/// \tparam Channel A type of channel object that the transmitter creates in its constructor
+///                 and to which it sends values.
 /// \see channels::channel
+///
+/// Example:
+/// \code
+/// using channel_type = channels::channel<int>;
+/// channel_type channel;
+/// assert( ! channel.is_valid());
+///
+/// channels::transmitter<channel_type> transmitter;
+/// channel = transmitter.get_channel();
+/// assert(channel.is_valid());
+///
+/// channels::connection c1 = channel.connect([](int v) { .... });
+/// channels::connection c2 = transmitter.get_channel().connect([](int v) { .... });
+/// transmitter(42);
+/// \endcode
 template<typename Channel>
-class transmitter : public Channel {
-	static_assert(is_channel_v<Channel>, "Channel must be channel");
-	using base_type = Channel;
-
+class transmitter {
 public:
-	/// Default constructor. Constructs a `transmitter` object with shared state.
-	transmitter();
-
-	transmitter(const transmitter&) = delete;
-	transmitter(transmitter&&) = default;
-	transmitter& operator=(const transmitter&) = delete;
-	transmitter& operator=(transmitter&&) = default;
-
-	~transmitter() = default;
+	using channel_type = Channel;
 
 	/// Sends args to the channel.
-	/// \note It just calls the method Channel::apply_value
 	/// \note This method is thread safe.
 	template<typename... Args>
 	decltype(auto) operator()(Args&&... args);
+
+	/// \return Reference to the channel object. This channel object is always valid.
+	/// \note This method is thread safe.
+	CHANNELS_NODISCARD const Channel& get_channel() const noexcept;
+
+private:
+	class transmit_channel;
+
+	transmit_channel channel_;
 };
 
 // implementation
 
-template<typename Channel>
-struct channel_traits<transmitter<Channel>> : channel_traits<Channel> {};
-
-template<typename Channel>
-transmitter<Channel>::transmitter()
-	: base_type{typename base_type::make_shared_state_tag{}}
-{}
+// transmitter
 
 template<typename Channel>
 template<typename... Args>
 decltype(auto) transmitter<Channel>::operator()(Args&&... args)
 {
-	return this->apply_value(std::forward<Args>(args)...);
+	return channel_(std::forward<Args>(args)...);
 }
+
+template<typename Channel>
+const Channel& transmitter<Channel>::get_channel() const noexcept
+{
+	return channel_;
+}
+
+// transmitter::transmit_channel
+
+/// A `transmit_channel` is a channel that can send values.
+template<typename Channel>
+class transmitter<Channel>::transmit_channel : public Channel {
+	static_assert(is_channel_v<Channel>, "Channel must be channel");
+	using base_type = Channel;
+
+public:
+	/// Default constructor. Constructs a `transmit_channel` object with shared state.
+	transmit_channel()
+		: base_type{typename base_type::make_shared_state_tag{}}
+	{}
+
+	transmit_channel(const transmit_channel&) = delete;
+	transmit_channel(transmit_channel&&) = default;
+	transmit_channel& operator=(const transmit_channel&) = delete;
+	transmit_channel& operator=(transmit_channel&&) = default;
+
+	~transmit_channel() = default;
+
+	/// Sends args to the channel.
+	/// \note It just calls the method Channel::apply_value
+	/// \note This method is thread safe.
+	template<typename... Args>
+	decltype(auto) operator()(Args&&... args)
+	{
+		return this->apply_value(std::forward<Args>(args)...);
+	}
+};
 
 } // namespace channels

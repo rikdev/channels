@@ -58,11 +58,11 @@ public:
 
 	/// \see channels::channel::connect
 	template<typename Callback>
-	CHANNELS_NODISCARD connection connect(Callback&& callback);
+	CHANNELS_NODISCARD connection connect(Callback&& callback) const;
 
 	/// \see channels::channel::connect
 	template<typename Executor, typename Callback>
-	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback);
+	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback) const;
 
 protected:
 	using base_type::base_type;
@@ -372,7 +372,7 @@ private:
 
 template<typename R, typename... Ts>
 template<typename Callback>
-connection aggregating_channel<R(Ts...)>::connect(Callback&& callback)
+connection aggregating_channel<R(Ts...)>::connect(Callback&& callback) const
 {
 	aggregating_callback<std::decay_t<Callback>> aggregating_callback{std::forward<Callback>(callback)};
 	return base_type::connect(std::move(aggregating_callback));
@@ -380,7 +380,7 @@ connection aggregating_channel<R(Ts...)>::connect(Callback&& callback)
 
 template<typename R, typename... Ts>
 template<typename Executor, typename Callback>
-connection aggregating_channel<R(Ts...)>::connect(Executor&& executor, Callback&& callback)
+connection aggregating_channel<R(Ts...)>::connect(Executor&& executor, Callback&& callback) const
 {
 	aggregating_callback<std::decay_t<Callback>> aggregating_callback{std::forward<Callback>(callback)};
 	return base_type::connect(std::forward<Executor>(executor), std::move(aggregating_callback));
