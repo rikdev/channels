@@ -66,6 +66,7 @@ target_sources(${LIBRARY_NAME}
   include/channels/detail/compatibility/type_traits.h
   include/channels/utility/executors.h
   include/channels/utility/connection_manager.h
+  include/channels/utility/no_executor_limiter.h
   include/channels/utility/send_once_limiter.h
   include/channels/utility/sync_connection_manager.h
   include/channels/utility/sync_tracker.h
