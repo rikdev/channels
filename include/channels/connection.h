@@ -38,10 +38,10 @@ public:
 	CHANNELS_NODISCARD bool is_connected() const noexcept;
 
 public: // library private interface
-	connection(std::weak_ptr<detail::shared_state_base> shared_state, detail::socket_base* socket) noexcept;
+	connection(std::shared_ptr<detail::shared_state_base> shared_state, detail::socket_base* socket) noexcept;
 
 private:
-	std::weak_ptr<detail::shared_state_base> shared_state_;
+	std::shared_ptr<detail::shared_state_base> shared_state_;
 	detail::socket_base* socket_{nullptr};
 };
 

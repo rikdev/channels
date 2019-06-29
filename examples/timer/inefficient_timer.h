@@ -14,7 +14,7 @@ public:
 	inefficient_timer(std::chrono::milliseconds period, cancellation_token_type cancellation_token);
 	~inefficient_timer();
 
-	channel_type get_channel() const noexcept;
+	const channel_type& get_channel() const noexcept;
 
 private:
 	void run();

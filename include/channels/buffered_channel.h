@@ -43,13 +43,13 @@ public:
 	/// then this method will call the callback function with buffered value.
 	/// \see get_value
 	template<typename Callback>
-	CHANNELS_NODISCARD connection connect(Callback&& callback);
+	CHANNELS_NODISCARD connection connect(Callback&& callback) const;
 
 	/// This method is similar to method `channel::connect` but if the `buffered_channel` object has a value
 	/// then this method will call the callback function with buffered value.
 	/// \see get_value
 	template<typename Executor, typename Callback>
-	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback);
+	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback) const;
 
 	/// Returns buffered value.
 	/// \note If the `buffered_channel` object hasn't a value then `static_cast<bool>(get_value()) == false` otherwise
@@ -134,7 +134,7 @@ private:
 
 template<typename... Ts>
 template<typename Callback>
-connection buffered_channel<Ts...>::connect(Callback&& callback)
+connection buffered_channel<Ts...>::connect(Callback&& callback) const
 {
 	if (!is_valid())
 		throw channel_error{"buffered_channel: has no state"};
@@ -145,7 +145,7 @@ connection buffered_channel<Ts...>::connect(Callback&& callback)
 
 template<typename... Ts>
 template<typename Executor, typename Callback>
-connection buffered_channel<Ts...>::connect(Executor&& executor, Callback&& callback)
+connection buffered_channel<Ts...>::connect(Executor&& executor, Callback&& callback) const
 {
 	if (!is_valid())
 		throw channel_error{"buffered_channel: has no state"};

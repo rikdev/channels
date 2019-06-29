@@ -15,9 +15,9 @@ inefficient_timer::~inefficient_timer()
 	thread_.join();
 }
 
-inefficient_timer::channel_type inefficient_timer::get_channel() const noexcept
+const inefficient_timer::channel_type& inefficient_timer::get_channel() const noexcept
 {
-	return transmitter_;
+	return transmitter_.get_channel();
 }
 
 void inefficient_timer::run()

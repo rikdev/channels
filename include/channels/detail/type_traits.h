@@ -6,7 +6,6 @@ namespace channels {
 namespace detail {
 
 // is_move_assignable
-
 template<typename...>
 struct is_move_assignable;
 

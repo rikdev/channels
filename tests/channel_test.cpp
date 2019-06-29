@@ -29,8 +29,9 @@ TEST_CASE("Testing class channel", "[channel]") {
 		}
 		SECTION("for channel with shared_state") {
 			const transmitter<channel_type> transmitter;
+			const channel_type& channel = transmitter.get_channel();
 
-			CHECK(transmitter.is_valid());
+			CHECK(channel.is_valid());
 		}
 	}
 	SECTION("connecting callback to invalid channel") {
@@ -48,10 +49,11 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("connecting callback without arguments") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
 			unsigned calls_number = 0;
-			const connection connection = transmitter.connect([&calls_number] { ++calls_number; });
+			const connection connection = channel.connect([&calls_number] { ++calls_number; });
 			CHECK(calls_number == 0u);
 
 			transmitter();
@@ -63,7 +65,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		SECTION("with executor") {
 			tools::executor executor;
 			unsigned calls_number = 0;
-			const connection connection = transmitter.connect(&executor, [&calls_number] { ++calls_number; });
+			const connection connection = channel.connect(&executor, [&calls_number] { ++calls_number; });
 
 			transmitter();
 			CHECK(calls_number == 0u);
@@ -79,9 +81,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("connecting callback with reference argument") {
 		using channel_type = channel<unsigned&>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
-			const connection connection = transmitter.connect(tools::callback_function);
+			const connection connection = channel.connect(tools::callback_function);
 
 			unsigned calls_number = 0;
 			transmitter(calls_number);
@@ -92,7 +95,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		}
 		SECTION("with executor") {
 			tools::executor executor;
-			const connection connection = transmitter.connect(&executor, tools::callback_function);
+			const connection connection = channel.connect(&executor, tools::callback_function);
 
 			unsigned calls_number = 0;
 			transmitter(calls_number);
@@ -109,13 +112,14 @@ TEST_CASE("Testing class channel", "[channel]") {
 
 		using channel_type = channel<float, std::string>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		auto float_value = 1.f;
 		auto string_value = "1"s;
 
 		SECTION("without executor") {
 			unsigned calls_number1 = 0;
-			const connection connection1 = transmitter.connect(
+			const connection connection1 = channel.connect(
 				[&calls_number1, &float_value, &string_value](const float f, const std::string& s) {
 				CHECK(f == float_value);
 				CHECK(s == string_value);
@@ -128,7 +132,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			string_value = "2"s;
 
 			unsigned calls_number2 = 0;
-			const connection connection2 = transmitter.connect(
+			const connection connection2 = channel.connect(
 				[&calls_number2, &float_value, &string_value](const float f, const std::string& s) {
 				CHECK(f == float_value);
 				CHECK(s == string_value);
@@ -141,7 +145,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		SECTION("with executor") {
 			tools::executor executor;
 			unsigned calls_number1 = 0;
-			const connection connection1 = transmitter.connect(
+			const connection connection1 = channel.connect(
 				&executor,
 				[&calls_number1, &float_value, &string_value](const float f, const std::string& s) {
 				CHECK(f == float_value);
@@ -156,7 +160,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			string_value = "2"s;
 
 			unsigned calls_number2 = 0;
-			const connection connection2 = transmitter.connect(
+			const connection connection2 = channel.connect(
 				&executor,
 				[&calls_number2, &float_value, &string_value](const float f, const std::string& s) {
 				CHECK(f == float_value);
@@ -179,9 +183,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 
 		using channel_type = channel<test_struct*, int>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
-			const connection connection = transmitter.connect(&test_struct::set_value);
+			const connection connection = channel.connect(&test_struct::set_value);
 
 			test_struct data;
 			transmitter(&data, 5);
@@ -189,7 +194,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		}
 		SECTION("with executor") {
 			tools::executor executor;
-			const connection connection = transmitter.connect(&executor, &test_struct::set_value);
+			const connection connection = channel.connect(&executor, &test_struct::set_value);
 
 			test_struct data;
 			transmitter(&data, 5);
@@ -223,11 +228,12 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("checking callbacks call order") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 		std::vector<int> order;
 
 		SECTION("without executor") {
-			const connection connection1 = transmitter.connect([&order] { order.push_back(1); });
-			const connection connection2 = transmitter.connect([&order] { order.push_back(2); });
+			const connection connection1 = channel.connect([&order] { order.push_back(1); });
+			const connection connection2 = channel.connect([&order] { order.push_back(2); });
 			transmitter();
 
 			REQUIRE(order.size() == 2u);
@@ -236,8 +242,8 @@ TEST_CASE("Testing class channel", "[channel]") {
 		}
 		SECTION("with executor") {
 			tools::executor executor;
-			const connection connection1 = transmitter.connect(&executor, [&order] { order.push_back(1); });
-			const connection connection2 = transmitter.connect(&executor, [&order] { order.push_back(2); });
+			const connection connection1 = channel.connect(&executor, [&order] { order.push_back(1); });
+			const connection connection2 = channel.connect(&executor, [&order] { order.push_back(2); });
 			transmitter();
 			executor.run_all_tasks();
 
@@ -249,16 +255,17 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("callbacks throw exception (without executor only)") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		unsigned calls_number1 = 0;
-		const connection connection1 = transmitter.connect(
+		const connection connection1 = channel.connect(
 			[&calls_number1] {
 				++calls_number1;
 				throw std::runtime_error{"Callback error 1"};
 			});
 
 		unsigned calls_number2 = 0;
-		const connection connection2 = transmitter.connect(
+		const connection connection2 = channel.connect(
 			[&calls_number2] {
 				++calls_number2;
 				throw std::runtime_error{"Callback error 2"};
@@ -297,13 +304,14 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("disconnecting") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
 			unsigned calls_number1 = 0;
-			connection connection1 = transmitter.connect([&calls_number1] { ++calls_number1; });
+			connection connection1 = channel.connect([&calls_number1] { ++calls_number1; });
 
 			unsigned calls_number2 = 0;
-			connection connection2 = transmitter.connect([&calls_number2] { ++calls_number2; });
+			connection connection2 = channel.connect([&calls_number2] { ++calls_number2; });
 
 			CHECK(connection1.is_connected());
 			CHECK(connection2.is_connected());
@@ -326,10 +334,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 			tools::executor executor;
 
 			unsigned calls_number1 = 0;
-			connection connection1 = transmitter.connect(&executor, [&calls_number1] { ++calls_number1; });
+			connection connection1 = channel.connect(&executor, [&calls_number1] { ++calls_number1; });
 
 			unsigned calls_number2 = 0;
-			connection connection2 = transmitter.connect(&executor, [&calls_number2] { ++calls_number2; });
+			connection connection2 = channel.connect(&executor, [&calls_number2] { ++calls_number2; });
 
 			CHECK(connection1.is_connected());
 			CHECK(connection2.is_connected());
@@ -354,13 +362,14 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("disconnecting in reverse order") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
 			unsigned calls_number1 = 0;
-			connection connection1 = transmitter.connect([&calls_number1] { ++calls_number1; });
+			connection connection1 = channel.connect([&calls_number1] { ++calls_number1; });
 
 			unsigned calls_number2 = 0;
-			connection connection2 = transmitter.connect([&calls_number2] { ++calls_number2; });
+			connection connection2 = channel.connect([&calls_number2] { ++calls_number2; });
 
 			CHECK(connection1.is_connected());
 			CHECK(connection2.is_connected());
@@ -383,10 +392,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 			tools::executor executor;
 
 			unsigned calls_number1 = 0;
-			connection connection1 = transmitter.connect(&executor, [&calls_number1] { ++calls_number1; });
+			connection connection1 = channel.connect(&executor, [&calls_number1] { ++calls_number1; });
 
 			unsigned calls_number2 = 0;
-			connection connection2 = transmitter.connect(&executor, [&calls_number2] { ++calls_number2; });
+			connection connection2 = channel.connect(&executor, [&calls_number2] { ++calls_number2; });
 
 			CHECK(connection1.is_connected());
 			CHECK(connection2.is_connected());
@@ -411,12 +420,13 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("assigning new connection") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
 			unsigned calls_number1 = 0;
-			connection connection = transmitter.connect([&calls_number1] { ++calls_number1; });
+			connection connection = channel.connect([&calls_number1] { ++calls_number1; });
 			unsigned calls_number2 = 0;
-			connection = transmitter.connect([&calls_number2] { ++calls_number2; });
+			connection = channel.connect([&calls_number2] { ++calls_number2; });
 
 			transmitter();
 			CHECK(calls_number1 == 0u);
@@ -426,9 +436,9 @@ TEST_CASE("Testing class channel", "[channel]") {
 			tools::executor executor;
 
 			unsigned calls_number1 = 0;
-			connection connection = transmitter.connect(&executor, [&calls_number1] { ++calls_number1; });
+			connection connection = channel.connect(&executor, [&calls_number1] { ++calls_number1; });
 			unsigned calls_number2 = 0;
-			connection = transmitter.connect(&executor, [&calls_number2] { ++calls_number2; });
+			connection = channel.connect(&executor, [&calls_number2] { ++calls_number2; });
 
 			transmitter();
 			executor.run_all_tasks();
@@ -439,22 +449,23 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("destroying channel and transmitter") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		SECTION("without executor") {
-			connection connection = transmitter.connect([] {});
+			connection connection = channel.connect([] {});
 
 			transmitter = decltype(transmitter){};
-			CHECK_FALSE(connection.is_connected());
+			CHECK(connection.is_connected());
 		}
 		SECTION("with executor") {
 			tools::executor executor;
 
 			unsigned calls_number = 0;
-			connection connection = transmitter.connect(&executor, [&calls_number] { ++calls_number; });
+			connection connection = channel.connect(&executor, [&calls_number] { ++calls_number; });
 			transmitter();
 
 			transmitter = decltype(transmitter){};
-			CHECK_FALSE(connection.is_connected());
+			CHECK(connection.is_connected());
 
 			executor.run_all_tasks();
 			CHECK(calls_number == 1);
@@ -463,11 +474,12 @@ TEST_CASE("Testing class channel", "[channel]") {
 	SECTION("async connects and disconnects") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
 		constexpr int async_disconnects_number = 100;
 		std::array<connection, async_disconnects_number> connections_to_disconnect;
 		for (connection& c : connections_to_disconnect) {
-			c = transmitter.connect([] {});
+			c = channel.connect([] {});
 		}
 		std::array<std::thread, async_disconnects_number> threads_to_disconnect;
 		for (size_t i = 0; i < async_disconnects_number; ++i) {
@@ -479,7 +491,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		std::array<std::thread, async_connects_number> threads_to_connect;
 		for (size_t i = 0; i < async_connects_number; ++i) {
 			threads_to_connect[i] =
-				std::thread([c = &connections_to_connect[i], &transmitter]{ *c = transmitter.connect([] {}); });
+				std::thread([c = &connections_to_connect[i], &channel]{ *c = channel.connect([] {}); });
 		}
 
 		tools::wait_all(threads_to_disconnect);
@@ -518,9 +530,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 
 		using channel_type = channel<notifier>;
 		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
 
-		const connection connection1 = transmitter.connect([](const notifier&) {}); // without executor
-		const connection connection2 = transmitter.connect(&executor, [](const notifier&) {}); // with executor
+		const connection connection1 = channel.connect([](const notifier&) {}); // without executor
+		const connection connection2 = channel.connect(&executor, [](const notifier&) {}); // with executor
 
 		unsigned calls_number = 0;
 		transmitter([&calls_number] { ++calls_number; });
@@ -537,14 +550,17 @@ TEST_CASE("Testing class channel", "[channel]") {
 		}
 		SECTION("comparing equal channels") {
 			transmitter<channel_type> transmitter;
+			const channel_type& channel = transmitter.get_channel();
 
-			CHECK(transmitter == transmitter);
+			CHECK(channel == channel);
 		}
 		SECTION("comparing not equal channels") {
 			transmitter<channel_type> transmitter1;
+			const channel_type& channel1 = transmitter1.get_channel();
 			transmitter<channel_type> transmitter2;
+			const channel_type& channel2 = transmitter2.get_channel();
 
-			CHECK_FALSE(transmitter1 == transmitter2);
+			CHECK_FALSE(channel1 == channel2);
 		}
 	}
 }

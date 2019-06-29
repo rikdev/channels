@@ -17,16 +17,18 @@ using channels::test::tools::executor;
 using channels::test::tools::joining_thread;
 
 TEST_CASE("Testing class sync_connection_manager", "[sync_connection_manager]") {
-	transmitter<channel<>> transmitter;
+	using channel_type = channel<>;
+	transmitter<channel_type> transmitter;
+	const channel_type& channel = transmitter.get_channel();
 	sync_connection_manager connection_manager;
 
 	SECTION("Testing in single-thread environment") {
 		unsigned calls_number1 = 0;
-		connection_manager.connect(transmitter, [&calls_number1] { ++calls_number1; });
+		connection_manager.connect(channel, [&calls_number1] { ++calls_number1; });
 
 		executor executor;
 		unsigned calls_number2 = 0;
-		connection_manager.connect(transmitter, &executor, [&calls_number2] { ++calls_number2; });
+		connection_manager.connect(channel, &executor, [&calls_number2] { ++calls_number2; });
 
 		SECTION("emitting before sync_release") {
 			transmitter();
@@ -58,9 +60,9 @@ TEST_CASE("Testing class sync_connection_manager", "[sync_connection_manager]") 
 		};
 
 		executor executor1;
-		connection_manager.connect(transmitter, &executor1, worker);
+		connection_manager.connect(channel, &executor1, worker);
 		executor executor2;
-		connection_manager.connect(transmitter, &executor2, worker);
+		connection_manager.connect(channel, &executor2, worker);
 
 		transmitter();
 		joining_thread worker1_thread{[&executor1] { executor1.run_all_tasks(); }};
