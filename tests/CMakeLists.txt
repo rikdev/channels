@@ -11,6 +11,7 @@ add_executable(unit_tests
   send_once_limiter_test.cpp
   sync_tracker_test.cpp
   sync_connection_manager_test.cpp
+  transponder_test.cpp
   # function main
   main.cpp
 )
