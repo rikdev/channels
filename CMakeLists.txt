@@ -64,6 +64,7 @@ target_sources(${LIBRARY_NAME}
   include/channels/utility/send_once_limiter.h
   include/channels/utility/sync_connection_manager.h
   include/channels/utility/sync_tracker.h
+  include/channels/utility/transponder.h
   src/connection.cpp
   src/error.cpp
   src/detail/intrusive_list.cpp
