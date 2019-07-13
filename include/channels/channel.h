@@ -185,7 +185,7 @@ void channel<Ts...>::apply_value(Args&&... args)
 	assert(shared_state_); // NOLINT
 
 	callbacks_exception::exceptions_type exceptions;
-	const shared_value_type shared_value{detail::in_place, std::forward<Args>(args)...};
+	const shared_value_type shared_value{cow::in_place, std::forward<Args>(args)...};
 	for (typename shared_state_type::invocable_socket& socket : shared_state_->get_sockets()) {
 		try {
 			socket(shared_value);

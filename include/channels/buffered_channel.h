@@ -119,7 +119,7 @@ private:
 	template<typename... Args>
 	void emplace_value_impl(emplace_in_place_tag, Args&&... args)
 	{
-		value_ = shared_value_type{detail::in_place, std::forward<Args>(args)...};
+		value_ = shared_value_type{cow::in_place, std::forward<Args>(args)...};
 	}
 
 	template<typename... Args>

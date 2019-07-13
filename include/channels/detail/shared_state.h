@@ -2,9 +2,9 @@
 #include "cast_view.h"
 #include "compatibility/apply.h"
 #include "compatibility/compile_features.h"
-#include "cow_optional.h"
 #include "shared_state_base.h"
 #include <cassert>
+#include <cow/optional.h>
 #include <memory>
 #include <tuple>
 #include <type_traits>
@@ -16,7 +16,7 @@ namespace detail {
 // This class keeps resources that are shared between all copies of the channel object (for example callbacks).
 template<typename... Ts>
 struct shared_state : shared_state_base {
-	using shared_value_type = cow_optional<std::tuple<Ts...>>;
+	using shared_value_type = cow::optional<std::tuple<Ts...>>;
 
 	struct connection_result;
 	class invocable_socket;

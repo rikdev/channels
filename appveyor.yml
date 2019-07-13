@@ -31,7 +31,7 @@ environment:
       CXX_STANDARD: 20
 
 cache:
-  - build_tools
+  - build/_deps -> FetchDependencies.cmake, tests/FetchDependencies.cmake
 
 install:
   - sh: |
@@ -40,27 +40,6 @@ install:
         sudo add-apt-repository 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main'
         sudo apt-get install -y clang++-8 clang-tidy-8
       fi
-
-  - ps: |
-      $build_tools_path = "$env:APPVEYOR_BUILD_FOLDER/build_tools"
-      New-Item -Force -Path "$build_tools_path" -ItemType Directory
-      Set-Location "$build_tools_path"
-
-      if (Test-Path vcpkg) {
-          Set-Location vcpkg
-          git pull --quiet
-      } else {
-          git clone --quiet --depth 1 'https://github.com/microsoft/vcpkg.git'
-          Set-Location vcpkg
-      }
-
-  - sh: |
-      ./bootstrap-vcpkg.sh
-      ./vcpkg install catch2:x64-linux
-
-  - cmd: |
-      bootstrap-vcpkg.bat
-      vcpkg install catch2:x64-windows
 
 configuration:
   - Release
@@ -72,9 +51,9 @@ build_script:
       Set-Location build
       # build
       cmake .. `
-        -DCMAKE_TOOLCHAIN_FILE="$build_tools_path/vcpkg/scripts/buildsystems/vcpkg.cmake" `
+        -DFETCH_DEPENDENCIES=ON `
         -DBUILD_TESTING=ON `
-        -DCHANNELS_BUILD_EXAMPLES=ON `
+        -DBUILD_EXAMPLES=ON `
         -DCMAKE_CXX_STANDARD="$env:CXX_STANDARD" `
         -DCMAKE_BUILD_TYPE="$env:CONFIGURATION"
       cmake --build . --config "$env:CONFIGURATION"

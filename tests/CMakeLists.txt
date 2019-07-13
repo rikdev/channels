@@ -1,4 +1,9 @@
-find_package(Catch2 REQUIRED)
+option(FETCH_DEPENDENCIES "Download and install dependencies" OFF)
+if(FETCH_DEPENDENCIES)
+  include(FetchDependencies.cmake)
+else()
+  find_package(Catch2 REQUIRED)
+endif()
 find_package(Threads REQUIRED)
 
 add_executable(unit_tests
@@ -6,7 +11,6 @@ add_executable(unit_tests
   aggregating_channel_test.cpp
   buffered_channel_test.cpp
   channel_test.cpp
-  cow_optional_test.cpp
   executors_test.cpp
   send_once_limiter_test.cpp
   sync_tracker_test.cpp
@@ -23,7 +27,6 @@ add_library(unit_test_tools STATIC
   tools/exception_helpers.h
   tools/executor.cpp
   tools/executor.h
-  tools/relation_only.h
   tools/thread_helpers.h
   tools/tracker.cpp
   tools/tracker.h

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # Declaring
 project(Channels
-  VERSION 0.2.0
+  VERSION 0.2.1
   DESCRIPTION "Another C++ signal/slot library"
   HOMEPAGE_URL "https://github.com/rikdev/channels"
   LANGUAGES CXX
@@ -28,8 +28,15 @@ add_library(${LIBRARY_NAME})
 add_library(${PROJECT_NAME}::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 
 # Building
+option(FETCH_DEPENDENCIES "Download and install dependencies" OFF)
+if(FETCH_DEPENDENCIES)
+  include(FetchDependencies.cmake)
+else()
+  find_package(COW REQUIRED)
+endif()
 find_package(Threads REQUIRED)
-target_link_libraries(${LIBRARY_NAME} PUBLIC Threads::Threads)
+
+target_link_libraries(${LIBRARY_NAME} PUBLIC Threads::Threads COW::Optional)
 target_include_directories(${LIBRARY_NAME}
   INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/channels>
@@ -46,7 +53,6 @@ target_sources(${LIBRARY_NAME}
   include/channels/fwd.h
   include/channels/transmitter.h
   include/channels/detail/cast_view.h
-  include/channels/detail/cow_optional.h
   include/channels/detail/future_shared_state.h
   include/channels/detail/intrusive_list.h
   include/channels/detail/lock_view.h
@@ -59,7 +65,6 @@ target_sources(${LIBRARY_NAME}
   include/channels/detail/compatibility/functional.h
   include/channels/detail/compatibility/shared_mutex.h
   include/channels/detail/compatibility/type_traits.h
-  include/channels/detail/compatibility/utility.h
   include/channels/utility/executors.h
   include/channels/utility/send_once_limiter.h
   include/channels/utility/sync_connection_manager.h
@@ -117,11 +122,14 @@ set(CPACK_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
 include(CPack)
 
 # Tooling
-add_subdirectory(tools)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(ENABLE_TOOLING "Enable tooling support" ON)
+if(ENABLE_TOOLING)
+  add_subdirectory(tools)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
 
 # Examples
-option(CHANNELS_BUILD_EXAMPLES "Build examples" OFF)
-if(CHANNELS_BUILD_EXAMPLES)
+option(BUILD_EXAMPLES "Build examples" OFF)
+if(BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
