@@ -24,6 +24,14 @@ namespace channels {
 /// channels::connection c2 = transmitter.get_channel().connect([](int v) { .... });
 /// transmitter(42);
 /// \endcode
+///
+/// \note All copies of one transmitter link to one channel.
+/// \code
+/// channels::transmitter<channels::channel<>> t1;
+/// auto t2 = t1;
+/// channels::connection c = t2.get_channel().connect([] { .... });
+/// t1(); // it will call the callback function connected to the channel from the t2
+/// \endcode
 template<typename Channel>
 class transmitter {
 public:
@@ -74,13 +82,6 @@ public:
 	transmit_channel()
 		: base_type{typename base_type::make_shared_state_tag{}}
 	{}
-
-	transmit_channel(const transmit_channel&) = delete;
-	transmit_channel(transmit_channel&&) = default;
-	transmit_channel& operator=(const transmit_channel&) = delete;
-	transmit_channel& operator=(transmit_channel&&) = default;
-
-	~transmit_channel() = default;
 
 	/// Sends args to the channel.
 	/// \note It just calls the method Channel::apply_value
