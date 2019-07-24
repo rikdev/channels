@@ -83,6 +83,7 @@ target_compile_options(${LIBRARY_NAME}
   $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wdocumentation>
 )
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_14)
+set_target_properties(${LIBRARY_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Testing
 include(CTest)
