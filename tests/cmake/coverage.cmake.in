@@ -1,0 +1,42 @@
+cmake_policy(SET CMP0057 NEW) # support IN_LIST operator
+
+set(CTEST_SOURCE_DIRECTORY "@CTEST_SOURCE_DIRECTORY@")
+set(CTEST_BINARY_DIRECTORY "@CTEST_BINARY_DIRECTORY@")
+set(CTEST_COVERAGE_COMMAND "@CTEST_COVERAGE_COMMAND@")
+set(CTEST_COVERAGE_EXTRA_FLAGS "@CTEST_COVERAGE_EXTRA_FLAGS@")
+set(SOURCES_LIST_FILE "@SOURCES_LIST_FILE@")
+
+file(GLOB_RECURSE GCDA_FILES "tests/*.gcda")
+foreach(GCDA_FILE ${GCDA_FILES})
+  file(REMOVE ${GCDA_FILE})
+endforeach()
+
+ctest_start(Continuous)
+ctest_test()
+ctest_coverage()
+
+set(COVERAGE_INFO_DIRECTORY Testing/CoverageInfo)
+file(GLOB EXISTS_GCOV_FILES
+  RELATIVE "${CTEST_BINARY_DIRECTORY}/${COVERAGE_INFO_DIRECTORY}"
+  "${COVERAGE_INFO_DIRECTORY}/*.gcov"
+)
+
+file(STRINGS "${SOURCES_LIST_FILE}" SOURCE_FILES ENCODING UTF-8)
+set(GCOV_FILES)
+foreach(SOURCE_FILE ${SOURCE_FILES})
+  get_filename_component(SOURCE_FILE_NAME "${SOURCE_FILE}" NAME)
+  set(GCOV_FILE "${SOURCE_FILE_NAME}.gcov")
+  if("${GCOV_FILE}" IN_LIST EXISTS_GCOV_FILES)
+    list(APPEND GCOV_FILES "${GCOV_FILE}")
+  else()
+    message("Not found coverage for: ${SOURCE_FILE_NAME}")
+  endif()
+endforeach()
+
+if("${GCOV_FILES}" STREQUAL "")
+  message(FATAL_ERROR "Not found gcov files")
+endif()
+execute_process(COMMAND
+  "${CMAKE_COMMAND}" -E tar -cf "${CTEST_BINARY_DIRECTORY}/test_coverage.tar" -- ${GCOV_FILES}
+  WORKING_DIRECTORY "${COVERAGE_INFO_DIRECTORY}"
+)

@@ -29,6 +29,29 @@ environment:
       CXXFLAGS: -fconcepts
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       CXX_STANDARD: 20
+    # test coverage
+    - TEST_COVERAGE: 1
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu1804
+      CXX_STANDARD: 17
+      CXX: g++-9
+      CXXFLAGS: -fconcepts
+
+for:
+  -
+    matrix:
+      only:
+        - TEST_COVERAGE: 1
+    environment:
+      CONFIGURATION: Debug
+    install:
+      - sh: sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-9 100
+    configuration: Debug
+    test_script:
+      - sh: |
+          ctest --script tests/coverage.cmake
+          mkdir test_coverage
+          tar --extract --file=test_coverage.tar --directory=test_coverage
+          bash <(curl -s https://codecov.io/bash) -s test_coverage
 
 cache:
   - build/_deps -> FetchDependencies.cmake, tests/FetchDependencies.cmake
