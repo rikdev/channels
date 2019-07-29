@@ -79,7 +79,7 @@ build_script:
         -DBUILD_EXAMPLES=ON `
         -DCMAKE_CXX_STANDARD="$env:CXX_STANDARD" `
         -DCMAKE_BUILD_TYPE="$env:CONFIGURATION"
-      cmake --build . --config "$env:CONFIGURATION"
+      cmake --build . --config "$env:CONFIGURATION" --verbose
 
 test_script:
   - ps: ctest --build-config "$env:CONFIGURATION"
