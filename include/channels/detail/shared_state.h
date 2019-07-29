@@ -107,7 +107,7 @@ typename shared_state<Ts...>::connection_result shared_state<Ts...>::connect(Exe
 
 			auto task = [self = this->shared_from_this(), value = shared_value]() mutable
 			{
-				if (!self)
+				if (!self || !value)
 					return; // executor call the task more than once
 
 				const auto local_self = std::move(self);
