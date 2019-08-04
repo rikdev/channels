@@ -16,6 +16,7 @@ add_executable(unit_tests
   sync_tracker_test.cpp
   sync_connection_manager_test.cpp
   transponder_test.cpp
+  tuple_elvis_test.cpp
   # function main
   main.cpp
 )
@@ -35,6 +36,7 @@ add_library(unit_test_tools STATIC
   tools/exception_helpers.h
   tools/executor.cpp
   tools/executor.h
+  tools/relation_only.h
   tools/thread_helpers.h
   tools/tracker.cpp
   tools/tracker.h
