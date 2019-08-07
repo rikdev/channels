@@ -107,7 +107,9 @@ private:
 ///                           processes it and return result of processing.
 ///                           Function type must match the concept `std::Invocable<Callback, Ts...>` where
 ///                           Ts - types of parameters for transponder source channel.
-///                           Function must return either void or std::tuple<Ds...> where
+///                           Function must return either void or D or std::tuple<Ds...> where
+///                           D - type of parameter for transponder destination channel if this channel has only one
+///                               parameter.
 ///                           Ds - types of parameters for transponder destination channel.
 ///
 /// Example:
@@ -237,16 +239,28 @@ public:
 	{}
 
 	template<typename Transmitter, typename... Args>
-	std::enable_if_t<std::is_void<function_result_type<Args...>>::value> operator()(
-		Transmitter& transmitter, Args&&... args)
+	std::enable_if_t<std::is_void<function_result_type<Args...>>::value>
+	operator()(Transmitter& transmitter, Args&&... args)
 	{
 		detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);
 		transmitter();
 	}
 
 	template<typename Transmitter, typename... Args>
-	std::enable_if_t<!std::is_void<function_result_type<Args...>>::value> operator()(
-		Transmitter& transmitter, Args&&... args)
+	std::enable_if_t <
+		!std::is_void<function_result_type<Args...>>::value
+		&& Transmitter::channel_type::template is_applicable<function_result_type<Args...>>>
+	operator()(Transmitter& transmitter, Args&&... args)
+	{
+		decltype(auto) result = detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);
+		transmitter(std::move(result));
+	}
+
+	template<typename Transmitter, typename... Args>
+	std::enable_if_t<
+		!std::is_void<function_result_type<Args...>>::value
+		&& !Transmitter::channel_type::template is_applicable<function_result_type<Args...>>>
+	operator()(Transmitter& transmitter, Args&&... args)
 	{
 		// transform_function_ must return tuple object
 		decltype(auto) result = detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);

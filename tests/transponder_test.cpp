@@ -117,27 +117,79 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 		CHECK(calls_number == 1);
 	}
 }
-TEST_CASE("Testing make_transform_adaptor", "[transponder]") {
+
+template<std::size_t I>
+struct channel_selector;
+
+template<>
+struct channel_selector<0> {
+	template<typename... Ts>
+	using type = channel<Ts...>;
+};
+
+template<>
+struct channel_selector<1> {
+	template<typename... Ts>
+	using type = buffered_channel<Ts...>;
+};
+
+TEMPLATE_TEST_CASE_SIG("Testing class optional", "[optional]", ((std::size_t Index), Index), (0), (1)) {
 	SECTION("void callback") {
 		auto adaptor = make_transform_adaptor([] {});
-		transmitter<buffered_channel<>> transmitter;
+		transmitter<typename channel_selector<Index>::template type<>> transmitter;
+
+		unsigned calls_number = 0;
+		const connection cn = transmitter.get_channel().connect([&calls_number] { ++calls_number; });
+
 		adaptor(transmitter);
 
-		CHECK(transmitter.get_channel().get_value());
+		CHECK(calls_number == 1);
 	}
-	SECTION("testing rvalue callback") {
-		const std::string test_string{"Foo"};
-		auto adaptor = make_transform_adaptor([](const std::string& s) { return std::make_tuple(s.length(), s); });
-		using channel_type = buffered_channel<std::size_t, std::string>;
-		transmitter<channel_type> transmitter;
-		adaptor(transmitter, test_string);
+	SECTION("forward callback result") {
+		auto adaptor = make_transform_adaptor([](const std::tuple<int> v) { return v; });
+		transmitter<typename channel_selector<Index>::template type<std::tuple<int>>> transmitter;
 
-		const channel_type& channel = transmitter.get_channel();
-		REQUIRE(channel.get_value());
-		CHECK(std::get<0>(*channel.get_value()) == test_string.length());
-		CHECK(std::get<1>(*channel.get_value()) == test_string);
+		std::tuple<int> result{0};
+		const connection cn = transmitter.get_channel().connect([&result](const std::tuple<int> v) { result = v; });
+
+		adaptor(transmitter, std::make_tuple(31));
+
+		CHECK(result == std::make_tuple(31));
+	}
+	SECTION("unpack callback result to single arguments") {
+		auto adaptor = make_transform_adaptor([](const int v) { return std::make_tuple(v); });
+		transmitter<typename channel_selector<Index>::template type<int>> transmitter;
+
+		int result{0};
+		const connection cn = transmitter.get_channel().connect([&result](const int v) { result = v; });
+
+		adaptor(transmitter, 68);
+
+		CHECK(result == 68);
+	}
+	SECTION("unpack callback result to several arguments") {
+		const std::string test_text{"Foo"};
+
+		auto adaptor = make_transform_adaptor([](const std::string& s) { return std::make_tuple(s.length(), s); });
+		transmitter<typename channel_selector<Index>::template type<std::size_t, std::string>> transmitter;
+
+		struct {
+			std::size_t length{ 0 };
+			std::string text;
+		} result;
+		const connection cn = transmitter.get_channel().connect(
+			[&result](const std::size_t l, const std::string& s) {
+			result.length = l;
+			result.text = s;
+			});
+
+		adaptor(transmitter, test_text);
+
+		CHECK(result.length == test_text.length());
+		CHECK(result.text == test_text);
 	}
 }
+
 TEST_CASE("Testing make_filter_adaptor", "[transponder]") {
 	transmitter<channel<int>> transmitter;
 	std::vector<int> values;

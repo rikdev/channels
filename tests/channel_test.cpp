@@ -563,6 +563,33 @@ TEST_CASE("Testing class channel", "[channel]") {
 			CHECK_FALSE(channel1 == channel2);
 		}
 	}
+	SECTION("testing is_applicable") {
+		SECTION("channel arguments is empty, is_applicable arguments is empty") {
+			constexpr bool is_applicable = channel<>::is_applicable<>;
+
+			CHECK(is_applicable);
+		}
+		SECTION("channel arguments isn't empty (but default constructible), is_applicable arguments is empty") {
+			constexpr bool is_applicable = channel<int>::is_applicable<>;
+
+			CHECK(is_applicable);
+		}
+		SECTION("channel arguments is empty, is_applicable arguments isn't empty") {
+			constexpr bool is_applicable = channel<>::is_applicable<int>;
+
+			CHECK_FALSE(is_applicable);
+		}
+		SECTION("channel arguments is constructible from is_applicable arguments") {
+			constexpr bool is_applicable = channel<std::string, double>::is_applicable<const char*, float>;
+
+			CHECK(is_applicable);
+		}
+		SECTION("channel arguments isn't constructible from is_applicable arguments") {
+			constexpr bool is_applicable = channel<std::string, double>::is_applicable<int, float>;
+
+			CHECK_FALSE(is_applicable);
+		}
+	}
 }
 
 } // namespace

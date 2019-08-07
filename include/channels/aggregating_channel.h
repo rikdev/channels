@@ -46,9 +46,16 @@ class aggregating_channel<R(Ts...)>
 	using execution_shared_state_interface = aggregating_channel_detail::execution_shared_state_interface<R, Ts...>;
 	using base_type = channel<std::shared_ptr<execution_shared_state_interface>>;
 
+	template<typename... Args>
+	struct is_applicable_type;
+
 public:
 	/// Return value type of callback functions
 	using aggregator_argument_type = R;
+
+	/// \see channels::is_applicable
+	template<typename... Args>
+	static constexpr bool is_applicable = is_applicable_type<Args...>::value;
 
 	/// \see channels::channel::channel
 	aggregating_channel() = default;
@@ -93,6 +100,8 @@ private:
 
 // implementation
 
+// channel_traits
+
 template<typename Channel>
 struct channel_traits;
 
@@ -100,6 +109,19 @@ template<typename F>
 struct channel_traits<aggregating_channel<F>> {
 	static constexpr bool is_channel = true;
 };
+
+// aggregating_channel::is_applicable_type
+
+template<typename R, typename... Ts>
+template<typename... Args>
+struct aggregating_channel<R(Ts...)>::is_applicable_type : std::false_type {};
+
+// \todo add Aggregator checking
+template<typename R, typename... Ts>
+template<typename Aggregator, typename... Args>
+struct aggregating_channel<R(Ts...)>::is_applicable_type<Aggregator, Args...>
+	: std::is_constructible<std::tuple<Ts...>, Args... >
+{};
 
 namespace aggregating_channel_detail {
 

@@ -65,7 +65,14 @@ class channel {
 	template<typename... Us>
 	friend bool operator!=(const channel<Us...>& lhs, const channel<Us...>& rhs) noexcept; // NOLINT
 
+	using shared_state_type = detail::shared_state<Ts...>;
+	using shared_value_type = typename shared_state_type::shared_value_type;
+
 public:
+	/// Equals true if the `apply_value` method can be called with parameters of type `Args`.
+	template<typename... Args>
+	static constexpr bool is_applicable = std::is_constructible<shared_value_type, cow::in_place_t, Args...>::value;
+
 	/// Constructs a `channel` object with no shared state.
 	/// \post `is_valid() == false`.
 	channel() = default;
@@ -124,9 +131,6 @@ protected:
 	void apply_value(Args&&... args);
 
 private:
-	using shared_state_type = detail::shared_state<Ts...>;
-	using shared_value_type = typename shared_state_type::shared_value_type;
-
 	std::shared_ptr<shared_state_type> shared_state_;
 };
 
@@ -177,11 +181,8 @@ template<typename... Ts>
 template<typename... Args>
 void channel<Ts...>::apply_value(Args&&... args)
 {
-#if __cpp_lib_logical_traits
-	static_assert(
-		std::conjunction_v<std::is_constructible<Ts, Args>...>,
-		"Channel parameters must be constructible from Args");
-#endif
+	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
+
 	assert(shared_state_); // NOLINT
 
 	callbacks_exception::exceptions_type exceptions;

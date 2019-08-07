@@ -33,6 +33,10 @@ public:
 	/// Looks like `std::optional<std::tuple<Ts...>>`
 	using shared_value_type = typename shared_state::shared_value_type;
 
+	/// \see channels::is_applicable
+	template<typename... Args>
+	static constexpr bool is_applicable = std::is_constructible<shared_value_type, cow::in_place_t, Args...>::value;
+
 	/// \see channels::channel::channel
 	buffered_channel() = default;
 
@@ -178,11 +182,8 @@ template<typename... Ts>
 template<typename... Args>
 void buffered_channel<Ts...>::apply_value(Args&&... args)
 {
-#if __cpp_lib_logical_traits
-	static_assert(
-		std::conjunction_v<std::is_constructible<Ts, Args>...>,
-		"Args must be constructible from channel parameters");
-#endif
+	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
+
 	callbacks_exception::exceptions_type exceptions;
 
 	{
