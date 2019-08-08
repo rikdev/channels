@@ -13,7 +13,12 @@ endforeach()
 
 ctest_start(Continuous)
 ctest_test()
-ctest_coverage()
+
+include(CTestCoverageCollectGCOV)
+ctest_coverage_collect_gcov(
+  TARBALL Testing/test_coverage.tar
+  GCOV_OPTIONS --verbose ${CTEST_COVERAGE_EXTRA_FLAGS}
+)
 
 set(COVERAGE_INFO_DIRECTORY Testing/CoverageInfo)
 file(GLOB EXISTS_GCOV_FILES
