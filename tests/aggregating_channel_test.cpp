@@ -1,4 +1,12 @@
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4702) // unreachable code
+#endif
 #include <channels/aggregating_channel.h>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 #include <channels/transmitter.h>
 #include "tools/exception_helpers.h"
 #include "tools/executor.h"
@@ -215,29 +223,36 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		using channel_type = aggregating_channel<callback_result(int)>;
 		transmitter<channel_type> transmitter;
 		const channel_type& channel = transmitter.get_channel();
-		tools::executor executor;
+		tools::async_executor executor;
 
 		const connection connection1 = channel.connect(
-			[](int) -> callback_result { throw std::runtime_error{"callback 1 exception"}; });
+			&executor,
+			executor.make_synchronizable_callback(
+				[](int) -> callback_result { throw std::runtime_error{"callback 1 exception"}; }));
 		const connection connection2 = channel.connect(
-			[](const int arg) { return callback_result{2, arg}; });
+			&executor,
+			executor.make_synchronizable_callback([](const int arg) { return callback_result{2, arg}; }));
 		const connection connection3 = channel.connect(
-			&executor, [](int) -> callback_result { throw std::runtime_error{"callback 3 exception"}; });
+			[](int) -> callback_result { throw std::runtime_error{"callback 3 exception"}; });
 		const connection connection4 = channel.connect(
-			&executor, [](const int arg) { return callback_result{4, arg}; });
+			[](const int arg) { return callback_result{4, arg}; });
+		const connection connection5 = channel.connect(
+			[](int) -> callback_result { throw std::runtime_error{"callback 5 exception"}; });
+		const connection connection6 = channel.connect(
+			[](const int arg) { return callback_result{6, arg}; });
 
 		SECTION("testing with aggregator that just collects callback result") {
 			using aggregator_type = box_aggregator<channel_type::aggregator_argument_type>;
 			constexpr int transmitted_value = 1;
 
 			std::future<aggregator_type> future = transmitter(aggregator_type{}, transmitted_value);
-			executor.run_all_tasks();
+			executor.resume_callbacks();
 
 			const aggregator_type aggregator = future.get();
 			CHECK(aggregator.get_results() ==
-				std::vector<callback_result>{{2, transmitted_value}, {4, transmitted_value}});
+				std::vector<callback_result>{{4, transmitted_value}, {6, transmitted_value}, {2, transmitted_value}});
 
-			CHECK(aggregator.get_exceptions().size() == 2u);
+			CHECK(aggregator.get_exceptions().size() == 3u);
 			tools::check_throws(aggregator.get_exceptions());
 		}
 		SECTION("testing with aggregator that stop aggregating by value") {
@@ -245,10 +260,10 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			constexpr int transmitted_value = 2;
 
 			std::future<aggregator_type> future = transmitter(aggregator_type{1}, transmitted_value);
-			executor.run_all_tasks();
+			executor.resume_callbacks();
 
 			const aggregator_type::base_type aggregator = future.get().base;
-			CHECK(aggregator.get_results() == std::vector<callback_result>{{2, transmitted_value}});
+			CHECK(aggregator.get_results() == std::vector<callback_result>{{4, transmitted_value}});
 
 			CHECK(aggregator.get_exceptions().size() == 1u);
 			tools::check_throws(aggregator.get_exceptions());
@@ -258,7 +273,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			constexpr int transmitted_value = 3;
 
 			std::future<aggregator_type> future = transmitter(aggregator_type{unlimited, 1}, transmitted_value);
-			executor.run_all_tasks();
+			executor.resume_callbacks();
 
 			const aggregator_type::base_type aggregator = future.get().base;
 			CHECK(aggregator.get_results().empty());
@@ -270,7 +285,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			using aggregator_type = limited_throw_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 
 			std::future<aggregator_type> future = transmitter(aggregator_type{1}, 4);
-			executor.run_all_tasks();
+			executor.resume_callbacks();
 
 			CHECK_THROWS_AS(future.get(), std::runtime_error);
 		}
@@ -278,9 +293,49 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			using aggregator_type = limited_throw_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 
 			std::future<aggregator_type> future = transmitter(aggregator_type{unlimited, 1}, 5);
-			executor.run_all_tasks();
+			executor.resume_callbacks();
 
 			CHECK_THROWS_AS(future.get(), std::runtime_error);
+		}
+	}
+	SECTION("testing with different void callbacks") {
+		using channel_type = aggregating_channel<void()>;
+		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
+		tools::async_executor executor;
+
+		const connection connection1 = channel.connect(
+			&executor, executor.make_synchronizable_callback([] { throw std::runtime_error{"callback 1 exception"}; }));
+		const connection connection2 = channel.connect(
+			&executor, executor.make_synchronizable_callback([] {}));
+		const connection connection3 = channel.connect([] { throw std::runtime_error{"callback 3 exception"}; });
+		const connection connection4 = channel.connect([] {});
+		const connection connection5 = channel.connect([] { throw std::runtime_error{"callback 5 exception"}; });
+		const connection connection6 = channel.connect([] {});
+
+		SECTION("testing with aggregator that stop aggregating by value") {
+			using aggregator_type = limited_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
+
+			std::future<aggregator_type> future = transmitter(aggregator_type{1});
+			executor.resume_callbacks();
+
+			const aggregator_type::base_type aggregator = future.get().base;
+			CHECK(aggregator.get_result_calls_number() == 1u);
+
+			CHECK(aggregator.get_exceptions().size() == 1u);
+			tools::check_throws(aggregator.get_exceptions());
+		}
+		SECTION("testing with aggregator that stop aggregating by exception") {
+			using aggregator_type = limited_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
+
+			std::future<aggregator_type> future = transmitter(aggregator_type{unlimited, 1});
+			executor.resume_callbacks();
+
+			const aggregator_type::base_type aggregator = future.get().base;
+			CHECK(aggregator.get_result_calls_number() == 0u);
+
+			CHECK(aggregator.get_exceptions().size() == 1u);
+			tools::check_throws(aggregator.get_exceptions());
 		}
 	}
 	SECTION("testing comparing functions") {
