@@ -8,6 +8,10 @@
 #include <type_traits>
 #include <utility>
 
+#if __cpp_lib_optional
+#include <optional>
+#endif
+
 namespace channels {
 namespace utility {
 
@@ -112,6 +116,37 @@ public:
 
 	constexpr explicit operator bool() const noexcept;
 	CHANNELS_NODISCARD constexpr bool has_value() const noexcept;
+
+	// conversions
+
+	/// converts tuple_elvis to another optional type U
+	template<typename U
+#if __cpp_lib_optional
+		= std::optional<value_type>
+#endif
+	>
+	U to_optional() const &;
+
+	template<typename U
+#if __cpp_lib_optional
+		= std::optional<value_type>
+#endif
+	>
+	U to_optional() &;
+
+	template<typename U
+#if __cpp_lib_optional
+		= std::optional<value_type>
+#endif
+	>
+	U to_optional() const &&;
+
+	template<typename U
+#if __cpp_lib_optional
+		= std::optional<value_type>
+#endif
+	>
+	U to_optional() &&;
 
 private:
 	Optional data_{};
@@ -299,6 +334,46 @@ template<typename Optional, std::size_t I>
 constexpr bool tuple_elvis<Optional, I>::has_value() const noexcept
 {
 	return static_cast<bool>(data_);
+}
+
+template<typename Optional, std::size_t I>
+template<typename U>
+U tuple_elvis<Optional, I>::to_optional() &
+{
+	if (!has_value())
+		return U{};
+
+	return U{**this};
+}
+
+template<typename Optional, std::size_t I>
+template<typename U>
+U tuple_elvis<Optional, I>::to_optional() const &
+{
+	if (!has_value())
+		return U{};
+
+	return U{**this};
+}
+
+template<typename Optional, std::size_t I>
+template<typename U>
+U tuple_elvis<Optional, I>::to_optional() &&
+{
+	if (!has_value())
+		return U{};
+
+	return U{*std::move(*this)};
+}
+
+template<typename Optional, std::size_t I>
+template<typename U>
+U tuple_elvis<Optional, I>::to_optional() const &&
+{
+	if (!has_value())
+		return U{};
+
+	return U{*std::move(*this)};
 }
 
 // ## non-member functions

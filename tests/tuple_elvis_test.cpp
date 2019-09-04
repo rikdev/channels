@@ -255,6 +255,60 @@ TEST_CASE("Testing class tuple_elvis", "[tuple_elvis]") {
 			CHECK(elvis.has_value());
 		}
 	}
+
+	SECTION("testing method to_optional") {
+		using tuple_elvis_type = tuple_elvis<cow::optional<std::tuple<int>>>;
+		using optional_type = cow::optional<int>;
+
+		SECTION("testing const lvalue version") {
+			SECTION("calling with nullopt value") {
+				const tuple_elvis_type elvis;
+
+				CHECK(elvis.to_optional<optional_type>() == cow::nullopt);
+			}
+			SECTION("calling with non-nullopt value") {
+				const tuple_elvis_type elvis{1};
+
+				CHECK(elvis.to_optional<optional_type>() == 1);
+			}
+		}
+		SECTION("testing non-const lvalue version") {
+			SECTION("calling with nullopt value") {
+				tuple_elvis_type elvis;
+
+				CHECK(elvis.to_optional<optional_type>() == cow::nullopt);
+			}
+			SECTION("calling with non-nullopt value") {
+				tuple_elvis_type elvis{1};
+
+				CHECK(elvis.to_optional<optional_type>() == 1);
+			}
+		}
+		SECTION("testing const rvalue version") {
+			SECTION("calling with nullopt value") {
+				const tuple_elvis_type elvis;
+
+				CHECK(std::move(elvis).to_optional<optional_type>() == cow::nullopt);
+			}
+			SECTION("calling with non-nullopt value") {
+				const tuple_elvis_type elvis{1};
+
+				CHECK(std::move(elvis).value() == 1);
+			}
+		}
+		SECTION("testing non-const rvalue version") {
+			SECTION("calling with nullopt value") {
+				tuple_elvis_type elvis;
+
+				CHECK(std::move(elvis).to_optional<optional_type>() == cow::nullopt);
+			}
+			SECTION("calling with non-nullopt value") {
+				tuple_elvis_type elvis{1};
+
+				CHECK(std::move(elvis).value() == 1);
+			}
+		}
+	}
 }
 
 TEST_CASE("Testing tuple_elvis non-member functions", "[tuple_elvis]") {
