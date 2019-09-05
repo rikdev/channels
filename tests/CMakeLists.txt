@@ -12,6 +12,7 @@ add_executable(unit_tests
   buffered_channel_test.cpp
   channel_test.cpp
   executors_test.cpp
+  new_only_limiter_test.cpp
   send_once_limiter_test.cpp
   sync_tracker_test.cpp
   sync_connection_manager_test.cpp
