@@ -234,6 +234,22 @@ TEST_CASE("Testing class buffered_channel", "[buffered_channel]") {
 			CHECK(calls_number == 2u);
 		}
 	}
+	SECTION("connecting from callback") {
+		using channel_type = buffered_channel<>;
+		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
+
+		transmitter();
+		unsigned calls_number = 0;
+		connection connection1;
+		const connection connection2 = channel.connect(
+			[&calls_number, &connection1, &channel] {
+				if (!connection1.is_connected())
+					connection1 = channel.connect([&calls_number] { ++calls_number; });
+			});
+		transmitter();
+		CHECK(calls_number == 2u);
+	}
 	SECTION("checking callbacks call order") {
 		using channel_type = buffered_channel<>;
 		transmitter<channel_type> transmitter;
@@ -305,6 +321,27 @@ TEST_CASE("Testing class buffered_channel", "[buffered_channel]") {
 				}),
 			std::runtime_error);
 		CHECK(calls_number3 == 1u);
+	}
+	SECTION("sending value from callback") {
+		tools::executor executor;
+
+		using channel_type = buffered_channel<int>;
+		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
+
+		transmitter(1);
+		unsigned calls_number = 0;
+		const connection connection = channel.connect(
+			&executor,
+			[&calls_number, &transmitter](const int value) {
+				++calls_number;
+				if (value != 0)
+					transmitter(0);
+			});
+		executor.run_all_tasks();
+		executor.run_all_tasks();
+
+		CHECK(calls_number == 2u);
 	}
 	SECTION("disconnecting") {
 		using channel_type = buffered_channel<>;
@@ -439,6 +476,29 @@ TEST_CASE("Testing class buffered_channel", "[buffered_channel]") {
 			CHECK(calls_number3 == 0u);
 			executor.run_all_tasks();
 			CHECK(calls_number3 == 1u);
+		}
+	}
+	SECTION("disconnecting from callback") {
+		using channel_type = buffered_channel<>;
+		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
+
+		SECTION("direct order") {
+			transmitter();
+			unsigned calls_number = 0;
+			connection connection1 = channel.connect([&calls_number] { ++calls_number; });
+			const connection connection2 = channel.connect([&connection1] { connection1.disconnect(); });
+			transmitter();
+			CHECK(calls_number == 1u);
+		}
+		SECTION("reverse order") {
+			transmitter();
+			unsigned calls_number = 0;
+			connection connection1;
+			const connection connection2 = channel.connect([&connection1] { connection1.disconnect(); });
+			connection1 = channel.connect([&calls_number] { ++calls_number; });
+			transmitter();
+			CHECK(calls_number == 1u);
 		}
 	}
 	SECTION("assigning new connection") {

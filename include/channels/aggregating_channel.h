@@ -83,7 +83,6 @@ protected:
 	/// callback function; otherwise this method stops execution and returns the aggregator to the future.
 	/// \note The aggregator is protected by a mutex so if the executors call the callback functions from different
 	///       threads they will wait for the queue to access the aggregator.
-	/// \warning Calling the `connect` methods from the aggregator will deadlock.
 	/// \param aggregator Reference to the aggregator. Aggregator type must match the concept `ChannelAggregator`.
 	/// \param args Arguments to pass to the callback functions.
 	///             Types `Args` must be convertible to template channel parameters `Ts`.

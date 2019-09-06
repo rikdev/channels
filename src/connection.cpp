@@ -38,7 +38,8 @@ void connection::disconnect() noexcept
 	if (!shared_state_)
 		return;
 
-	shared_state_->remove(socket_);
+	assert(socket_); // NOLINT
+	shared_state_->remove(*socket_);
 
 	shared_state_.reset();
 	socket_ = nullptr;
@@ -50,12 +51,11 @@ bool connection::is_connected() const noexcept
 }
 
 connection::connection(
-	std::shared_ptr<detail::shared_state_base> shared_state, detail::socket_base* const socket) noexcept
+	std::shared_ptr<detail::shared_state_base> shared_state, detail::socket_base& socket) noexcept
 	: shared_state_{std::move(shared_state)}
-	, socket_{socket}
+	, socket_{&socket}
 {
 	assert(shared_state_); // NOLINT
-	assert(socket_); // NOLINT
 }
 
 } // namespace channels

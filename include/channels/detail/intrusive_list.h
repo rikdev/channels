@@ -33,6 +33,7 @@ public:
 	using reference = node&;
 	using const_pointer = const node*;
 	using const_reference = const node&;
+	using size_type = std::size_t;
 	using difference_type = std::ptrdiff_t;
 
 	using iterator = intrusive_list_detail::iterator<node>;
@@ -112,6 +113,7 @@ public:
 	CHANNELS_NODISCARD const_reverse_iterator crbegin() const noexcept;
 	CHANNELS_NODISCARD const_reverse_iterator crend() const noexcept;
 
+	CHANNELS_NODISCARD size_type size() const noexcept;
 	CHANNELS_NODISCARD bool empty() const noexcept;
 
 private:
@@ -119,6 +121,7 @@ private:
 
 	owner_pointer first_;
 	pointer last_{nullptr};
+	size_type size_{0};
 };
 
 void swap(intrusive_list& lhs, intrusive_list& rhs) noexcept;

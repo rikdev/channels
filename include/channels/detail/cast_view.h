@@ -20,10 +20,10 @@ public:
 	using value_type = std::remove_cv_t<T>;
 	using pointer = T*;
 	using reference = T&;
-	using iterator = cast_iterator<typename Base::iterator, T>;
+	using iterator = cast_iterator<decltype(std::begin(std::declval<Base>())), T>;
 	using const_pointer = const T*;
 	using const_reference = const T&;
-	using const_iterator = cast_iterator<typename Base::const_iterator, const T>;
+	using const_iterator = cast_iterator<decltype(std::begin(std::declval<const Base>())), const T>;
 	using difference_type = typename Base::difference_type;
 
 	cast_view() = default;
@@ -138,7 +138,7 @@ constexpr typename cast_view<Base, T>::const_iterator cast_view<Base, T>::cend()
 // cast_iterator
 
 template<typename Base, typename T>
-constexpr cast_iterator<Base, T>::cast_iterator(const Base base)
+constexpr cast_iterator<Base, T>::cast_iterator(Base base)
 	: base_{base}
 {}
 

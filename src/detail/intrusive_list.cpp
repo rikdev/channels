@@ -58,6 +58,8 @@ void intrusive_list::insert(const pointer position, owner_pointer item) noexcept
 	// if position exists then it must be added
 	assert(!position || contains(position)); // NOLINT
 
+	++size_;
+
 	pointer insert_after = nullptr;
 	if (position) {
 		insert_after = position->prev_;
@@ -80,9 +82,12 @@ void intrusive_list::insert(const pointer position, owner_pointer item) noexcept
 
 void intrusive_list::erase(const pointer position) noexcept
 {
+	assert(size_ > 0); // NOLINT
 	assert(position); // NOLINT
 	// item_ptr must be added
 	assert(contains(position)); // NOLINT
+
+	--size_;
 
 	const pointer next_item = position->next_.get();
 	const pointer prev_item = position->prev_;
@@ -196,6 +201,11 @@ intrusive_list::const_reverse_iterator intrusive_list::crbegin() const noexcept
 intrusive_list::const_reverse_iterator intrusive_list::crend() const noexcept
 {
 	return rend();
+}
+
+intrusive_list::size_type intrusive_list::size() const noexcept
+{
+	return size_;
 }
 
 bool intrusive_list::empty() const noexcept

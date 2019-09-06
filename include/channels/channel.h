@@ -84,7 +84,6 @@ public:
 	/// \note This method is thread safe.
 	/// \param callback Reference to the callback function.
 	///                 Callback type must match the concept `std::Invocable<Callback, Ts...>`.
-	/// \warning Calling this method from the callback function will deadlock.
 	/// \return A `channels::connection` object that controls the current connection.
 	/// \warning When connection object is destroyed the connection will be disconnected.
 	/// \note Callback function will be destroyed only when the connection is disconnected.
@@ -101,7 +100,6 @@ public:
 	/// another thread).
 	/// \note Task can be safely invoked after a channel object is destroyed.
 	/// \warning Task can be invoked only once. Other invokes will have no effect.
-	/// \warning Calling this method from either the callback function or `execute` function will deadlock.
 	/// \param executor Reference to the executor object. You must implement function
 	///                 `execute(Executor&, Callable<void()>&&)` to bind your executor with this library.
 	/// \param callback See previous method `connect`.
@@ -131,6 +129,9 @@ protected:
 	void apply_value(Args&&... args);
 
 private:
+	template<typename... Args>
+	CHANNELS_NODISCARD connection connect_impl(Args&& ... args) const;
+
 	std::shared_ptr<shared_state_type> shared_state_;
 };
 
@@ -148,22 +149,14 @@ template<typename... Ts>
 template<typename Callback>
 connection channel<Ts...>::connect(Callback&& callback) const
 {
-	if (!is_valid())
-		throw channel_error{"channel: has no state"};
-
-	auto socket = shared_state_->connect(std::forward<Callback>(callback)).socket;
-	return connection{shared_state_, std::move(socket)};
+	return connect_impl(std::forward<Callback>(callback));
 }
 
 template<typename... Ts>
 template<typename Executor, typename Callback>
 connection channel<Ts...>::connect(Executor&& executor, Callback&& callback) const
 {
-	if (!is_valid())
-		throw channel_error{"channel: has no state"};
-
-	auto socket = shared_state_->connect(std::forward<Executor>(executor), std::forward<Callback>(callback)).socket;
-	return connection{shared_state_, std::move(socket)};
+	return connect_impl(std::forward<Executor>(executor), std::forward<Callback>(callback));
 }
 
 template<typename... Ts>
@@ -198,6 +191,17 @@ void channel<Ts...>::apply_value(Args&&... args)
 
 	if (!exceptions.empty())
 		throw callbacks_exception{std::move(exceptions)};
+}
+
+template<typename... Ts>
+template<typename... Args>
+connection channel<Ts...>::connect_impl(Args&&... args) const
+{
+	if (!is_valid())
+		throw channel_error{"channel: has no state"};
+
+	auto& socket = shared_state_->connect(std::forward<Args>(args)...);
+	return connection{shared_state_, socket};
 }
 
 template<typename... Us>

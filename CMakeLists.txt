@@ -55,11 +55,10 @@ target_sources(${LIBRARY_NAME}
   include/channels/detail/cast_view.h
   include/channels/detail/future_shared_state.h
   include/channels/detail/intrusive_list.h
-  include/channels/detail/lock_view.h
+  include/channels/detail/range_view.h
   include/channels/detail/shared_state.h
   include/channels/detail/shared_state_base.h
   include/channels/detail/type_traits.h
-  include/channels/detail/view.h
   include/channels/detail/compatibility/apply.h
   include/channels/detail/compatibility/compile_features.h
   include/channels/detail/compatibility/functional.h

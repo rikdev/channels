@@ -225,6 +225,22 @@ TEST_CASE("Testing class channel", "[channel]") {
 			CHECK(calls_number == 1u);
 		}
 	}
+	SECTION("connecting from callback") {
+		using channel_type = channel<>;
+		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
+
+		unsigned calls_number = 0;
+		connection connection1;
+		const connection connection2 = channel.connect(
+			[&calls_number, &connection1, &channel] {
+				if (!connection1.is_connected())
+					connection1 = channel.connect([&calls_number] { ++calls_number; });
+			});
+		transmitter();
+		transmitter();
+		CHECK(calls_number == 1u);
+	}
 	SECTION("checking callbacks call order") {
 		using channel_type = channel<>;
 		transmitter<channel_type> transmitter;
@@ -285,7 +301,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			tools::check_throws(callbacks_exception);
 		}
 	}
-	SECTION("send value from callback") {
+	SECTION("sending value from callback") {
 		using channel_type = channel<int>;
 		transmitter<channel_type> transmitter;
 		const channel_type& channel = transmitter.get_channel();
@@ -415,6 +431,29 @@ TEST_CASE("Testing class channel", "[channel]") {
 			executor.run_all_tasks();
 			CHECK(calls_number1 == 1u);
 			CHECK(calls_number2 == 0u);
+		}
+	}
+	SECTION("disconnecting from callback") {
+		using channel_type = channel<>;
+		transmitter<channel_type> transmitter;
+		const channel_type& channel = transmitter.get_channel();
+
+		SECTION("direct order") {
+			unsigned calls_number = 0;
+			connection connection1 = channel.connect([&calls_number] { ++calls_number; });
+			const connection connection2 = channel.connect([&connection1] { connection1.disconnect(); });
+			transmitter();
+			transmitter();
+			CHECK(calls_number == 1u);
+		}
+		SECTION("reverse order") {
+			unsigned calls_number = 0;
+			connection connection1;
+			const connection connection2 = channel.connect([&connection1] { connection1.disconnect(); });
+			connection1 = channel.connect([&calls_number] { ++calls_number; });
+			transmitter();
+			transmitter();
+			CHECK(calls_number == 0u);
 		}
 	}
 	SECTION("assigning new connection") {

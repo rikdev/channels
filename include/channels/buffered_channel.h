@@ -1,13 +1,14 @@
 #pragma once
 #include "connection.h"
 #include "detail/compatibility/compile_features.h"
+#include "detail/compatibility/shared_mutex.h"
 #include "detail/shared_state.h"
 #include "detail/type_traits.h"
 #include "error.h"
-#include <cassert>
 #include <exception>
 #include <memory>
 #include <mutex>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -68,12 +69,14 @@ protected:
 
 	/// This method is similar to method `channel::apply_value` but it also keeps args in the `buffered_channel` object.
 	/// \see get_value
-	/// \warning Calling this method from the callback function will deadlock.
+	/// \warning Calling this method from the callback function will deadlock. Except when the executor breaks the
+	///          stack.
 	template<typename... Args>
 	void apply_value(Args&&... args);
 
 private:
-	CHANNELS_NODISCARD connection apply(const typename shared_state::connection_result& connection_result) const;
+	template<typename... Args>
+	CHANNELS_NODISCARD connection connect_impl(Args&&... args) const;
 
 	std::shared_ptr<shared_state> shared_state_;
 };
@@ -96,27 +99,28 @@ class buffered_channel<Ts...>::shared_state : public detail::shared_state<Ts...>
 public:
 	using typename detail::shared_state<Ts...>::shared_value_type;
 
+	using shared_value_mutex_type = detail::compatibility::shared_mutex;
+	using shared_value_unique_lock_type = std::unique_lock<shared_value_mutex_type>;
+	using shared_value_shared_lock_type = std::shared_lock<shared_value_mutex_type>;
+
 	template<typename... Args>
-	shared_value_type atomic_emplace_value(Args&&... args)
+	std::pair<shared_value_type, shared_value_unique_lock_type> emplace_value(Args&&... args)
 	{
-		const std::lock_guard<decltype(value_mutex_)> value_lock{value_mutex_};
+		shared_value_unique_lock_type value_lock{value_mutex_};
+
 		using emplace_tag = std::conditional_t<
 			detail::is_move_assignable<typename shared_value_type::value_type>::value,
 			emplace_out_place_tag,
 			emplace_in_place_tag>;
 		emplace_value_impl(emplace_tag{}, std::forward<Args>(args)...);
-		return value_;
+
+		return {value_, std::move(value_lock)};
 	}
 
-	CHANNELS_NODISCARD shared_value_type atomic_get_value() const
+	CHANNELS_NODISCARD std::pair<shared_value_type, shared_value_shared_lock_type> get_value() const
 	{
-		const std::lock_guard<decltype(value_mutex_)> value_lock{value_mutex_};
-		return value_;
-	}
-
-	CHANNELS_NODISCARD const shared_value_type& get_value() const noexcept
-	{
-		return value_;
+		shared_value_shared_lock_type value_lock{value_mutex_};
+		return {value_, std::move(value_lock)};
 	}
 
 private:
@@ -132,7 +136,7 @@ private:
 		value_ = typename shared_value_type::value_type{std::forward<Args>(args)...};
 	}
 
-	mutable std::mutex value_mutex_;
+	mutable shared_value_mutex_type value_mutex_;
 	shared_value_type value_;
 };
 
@@ -140,22 +144,14 @@ template<typename... Ts>
 template<typename Callback>
 connection buffered_channel<Ts...>::connect(Callback&& callback) const
 {
-	if (!is_valid())
-		throw channel_error{"buffered_channel: has no state"};
-
-	auto connection_result = shared_state_->connect(std::forward<Callback>(callback));
-	return apply(std::move(connection_result));
+	return connect_impl(std::forward<Callback>(callback));
 }
 
 template<typename... Ts>
 template<typename Executor, typename Callback>
 connection buffered_channel<Ts...>::connect(Executor&& executor, Callback&& callback) const
 {
-	if (!is_valid())
-		throw channel_error{"buffered_channel: has no state"};
-
-	auto connection_result = shared_state_->connect(std::forward<Executor>(executor), std::forward<Callback>(callback));
-	return apply(std::move(connection_result));
+	return connect_impl(std::forward<Executor>(executor), std::forward<Callback>(callback));
 }
 
 template<typename... Ts>
@@ -170,7 +166,7 @@ typename buffered_channel<Ts...>::shared_value_type buffered_channel<Ts...>::get
 	if (!is_valid())
 		throw channel_error{"buffered_channel: has no state"};
 
-	return shared_state_->atomic_get_value();
+	return shared_state_->get_value().first;
 }
 
 template<typename... Ts>
@@ -184,20 +180,26 @@ void buffered_channel<Ts...>::apply_value(Args&&... args)
 {
 	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
 
-	callbacks_exception::exceptions_type exceptions;
+	shared_value_type shared_value;
+	typename shared_state::invocable_sockets_shared_view sockets_view;
 
 	{
-		// first get class-wide lock
-		typename shared_state::sockets_lock_view sockets_view = shared_state_->get_sockets();
-		const shared_value_type shared_value = shared_state_->atomic_emplace_value(std::forward<Args>(args)...);
+		typename shared_state::shared_value_unique_lock_type shared_value_lock;
 
-		for (typename shared_state::invocable_socket& socket : sockets_view) {
-			try {
-				socket(shared_value);
-			}
-			catch (...) {
-				exceptions.push_back(std::current_exception());
-			}
+		std::tie(shared_value, shared_value_lock) = shared_state_->emplace_value(std::forward<Args>(args)...);
+		// get sockets under the shared_value_lock in order to avoid duplication of the message in the callback function
+		// when it is called from the connect method
+		sockets_view = shared_state_->get_sockets();
+	}
+
+	callbacks_exception::exceptions_type exceptions;
+
+	for (typename shared_state::invocable_socket& socket : sockets_view) {
+		try {
+			socket(shared_value);
+		}
+		catch (...) {
+			exceptions.push_back(std::current_exception());
 		}
 	}
 
@@ -206,18 +208,26 @@ void buffered_channel<Ts...>::apply_value(Args&&... args)
 }
 
 template<typename... Ts>
-connection buffered_channel<Ts...>::apply(const typename shared_state::connection_result& connection_result) const
+template<typename... Args>
+connection buffered_channel<Ts...>::connect_impl(Args&&... args) const
 {
-	assert(connection_result.lock); // NOLINT
-	assert(connection_result.socket); // NOLINT
+	if (!is_valid())
+		throw channel_error{"buffered_channel: has no state"};
 
-	typename shared_state::invocable_socket* const socket = connection_result.socket;
+	typename shared_state::invocable_socket *socket = nullptr;
 
-	// this method is called under class-wide lock that protects value
-	if (const shared_value_type& shared_value = shared_state_->get_value())
-		(*socket)(shared_value);
+	{
+		shared_value_type shared_value;
+		// shared lock allows calling the connect method from the callback
+		typename shared_state::shared_value_shared_lock_type shared_value_lock;
+		std::tie(shared_value, shared_value_lock) = shared_state_->get_value();
+		socket = &shared_state_->connect(std::forward<Args>(args)...);
 
-	return connection{shared_state_, socket};
+		if (shared_value)
+			(*socket)(std::move(shared_value));
+	}
+
+	return connection{shared_state_, *socket};
 }
 
 template<typename... Us>

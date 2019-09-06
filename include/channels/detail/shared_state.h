@@ -20,26 +20,20 @@ struct shared_state : shared_state_base {
 
 	struct connection_result;
 	class invocable_socket;
-	using sockets_lock_view = cast_view<shared_state_base::sockets_lock_view_type, invocable_socket>;
+	using invocable_sockets_shared_view = cast_view<sockets_shared_view, invocable_socket>;
 
 	template<typename Callback>
-	connection_result connect(Callback&& callback);
+	invocable_socket& connect(Callback&& callback);
 
 	template<typename Executor, typename Callback>
-	connection_result connect(Executor&& executor, Callback&& callback);
+	invocable_socket& connect(Executor&& executor, Callback&& callback);
 
-	sockets_lock_view get_sockets();
+	invocable_sockets_shared_view get_sockets();
 };
 
 // implementation
 
 // shared_state
-
-template<typename... Ts>
-struct CHANNELS_NODISCARD shared_state<Ts...>::connection_result {
-	sockets_unique_lock_type lock;
-	invocable_socket* socket = nullptr;
-};
 
 template<typename... Ts>
 class shared_state<Ts...>::invocable_socket : public socket_base {
@@ -55,7 +49,7 @@ protected:
 
 template<typename... Ts>
 template<typename Callback>
-typename shared_state<Ts...>::connection_result shared_state<Ts...>::connect(Callback&& callback)
+typename shared_state<Ts...>::invocable_socket& shared_state<Ts...>::connect(Callback&& callback)
 {
 #if __cpp_lib_is_invocable
 	static_assert(std::is_invocable_v<Callback, Ts...>, "Callback must be invocable with channel parameters");
@@ -72,20 +66,24 @@ typename shared_state<Ts...>::connection_result shared_state<Ts...>::connect(Cal
 		{
 			assert(shared_value); // NOLINT
 
+			if (this->is_blocked())
+				return;
+
 			compatibility::apply(callback_, *shared_value);
 		}
 
 		std::decay_t<Callback> callback_;
 	};
 
-	auto socket = std::make_shared<immediately_invocable_socket>(std::forward<Callback>(callback));
-	const auto socket_ptr = socket.get();
-	return connection_result{add(std::move(socket)), socket_ptr};
+	auto socket_ptr = std::make_shared<immediately_invocable_socket>(std::forward<Callback>(callback));
+	invocable_socket& socket = *socket_ptr;
+	add(std::move(socket_ptr));
+	return socket;
 }
 
 template<typename... Ts>
 template<typename Executor, typename Callback>
-typename shared_state<Ts...>::connection_result shared_state<Ts...>::connect(Executor&& executor, Callback&& callback)
+typename shared_state<Ts...>::invocable_socket& shared_state<Ts...>::connect(Executor&& executor, Callback&& callback)
 {
 #if __cpp_lib_is_invocable
 	static_assert(std::is_invocable_v<Callback, const Ts&...>, "Callback must be invocable with channel parameters");
@@ -129,16 +127,17 @@ typename shared_state<Ts...>::connection_result shared_state<Ts...>::connect(Exe
 		std::decay_t<Callback> callback_;
 	};
 
-	auto socket =
+	auto socket_ptr =
 		std::make_shared<deferred_invocable_socket>(std::forward<Executor>(executor), std::forward<Callback>(callback));
-	const auto socket_ptr = socket.get();
-	return connection_result{add(std::move(socket)), socket_ptr};
+	invocable_socket& socket = *socket_ptr;
+	add(std::move(socket_ptr));
+	return socket;
 }
 
 template<typename... Ts>
-typename shared_state<Ts...>::sockets_lock_view shared_state<Ts...>::get_sockets()
+typename shared_state<Ts...>::invocable_sockets_shared_view shared_state<Ts...>::get_sockets()
 {
-	return sockets_lock_view{shared_state_base::get_sockets()};
+	return invocable_sockets_shared_view{shared_state_base::get_sockets()};
 }
 
 } // namespace detail
