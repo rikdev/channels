@@ -90,5 +90,10 @@ sync_tracker::tracked_object::shared_lock sync_tracker::tracked_object::lock() c
 	return lock;
 }
 
+bool sync_tracker::tracked_object::expired() const noexcept
+{
+	return !shared_state_ || shared_state_->blocked.load(std::memory_order_relaxed);
+}
+
 } // namespace utility
 } // namespace channels

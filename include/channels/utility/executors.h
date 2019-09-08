@@ -25,6 +25,7 @@ namespace executors_detail {
 template<typename T>
 concept TemporaryOwnership = requires(T x) {
 	static_cast<bool>(x.lock());
+	{static_cast<const T&>(x).expired()} -> bool;
 };
 #endif
 
@@ -111,6 +112,9 @@ void tracking_executor<TrackedObject, Executor>::add(Function&& task) const
 	requires executors_detail::TemporaryOwnership<TrackedObject>
 #endif
 {
+	if (tracked_object_.expired())
+		return;
+
 	execute(
 		executor_,
 		[tracked_object = tracked_object_, task = std::forward<Function>(task)]() mutable {

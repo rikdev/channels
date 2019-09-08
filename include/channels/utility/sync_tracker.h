@@ -84,7 +84,11 @@ public:
 	tracked_object() = default;
 	explicit tracked_object(shared_state_ptr shared_state) noexcept;
 
+	/// Get shared_lock if tracked_object isn't expired.
 	CHANNELS_NODISCARD shared_lock lock() const;
+
+	/// Check that tracked_object (sync_tracker was released) is expired without getting lock.
+	CHANNELS_NODISCARD bool expired() const noexcept;
 
 private:
 	shared_state_ptr shared_state_;

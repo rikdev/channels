@@ -61,6 +61,29 @@ TEST_CASE("Testing tracking_executor class", "[tracking_executor]") {
 			CHECK(calls_number == 1);
 		}
 	}
+	SECTION("non-lockable tracked object") {
+		struct tracket_object_type {
+			bool expired() const noexcept { return false; }
+			bool lock() const noexcept { return false; }
+		};
+
+		SECTION("without user executor") {
+			auto testing_executor = channels::utility::make_tracking_executor(tracket_object_type{});
+			unsigned calls_number = 0;
+			execute(testing_executor, [&calls_number] { ++calls_number; });
+
+			CHECK(calls_number == 0);
+		}
+		SECTION("with user executor") {
+			executor user_executor;
+			auto testing_executor = channels::utility::make_tracking_executor(tracket_object_type{}, &user_executor);
+			unsigned calls_number = 0;
+			execute(testing_executor, [&calls_number] { ++calls_number; });
+
+			user_executor.run_all_tasks();
+			CHECK(calls_number == 0);
+		}
+	}
 }
 
 } // namespace

@@ -10,6 +10,7 @@ TEST_CASE("sync_tracker::tracked_object was created by default constructor", "[s
 	const sync_tracker::tracked_object tracked_object;
 
 	CHECK_FALSE(tracked_object.lock());
+	CHECK(tracked_object.expired());
 }
 
 TEST_CASE("sync_tracker::tracked_object was created by sync_tracker", "[sync_tracker]") {
@@ -18,11 +19,13 @@ TEST_CASE("sync_tracker::tracked_object was created by sync_tracker", "[sync_tra
 
 	SECTION("unreleased tracker") {
 		CHECK(tracked_object.lock());
+		CHECK_FALSE(tracked_object.expired());
 	}
 	SECTION("released tracker") {
 		tracker.sync_release();
 
 		CHECK_FALSE(tracked_object.lock());
+		CHECK(tracked_object.expired());
 	}
 
 	tracker.sync_release();
