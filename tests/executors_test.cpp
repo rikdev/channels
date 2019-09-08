@@ -4,7 +4,6 @@
 #include <memory>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -88,5 +87,4 @@ TEST_CASE("Testing tracking_executor class", "[tracking_executor]") {
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

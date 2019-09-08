@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 /// This class manages tracking callbacks.
 /// \see channels::utility::make_tracking_callback

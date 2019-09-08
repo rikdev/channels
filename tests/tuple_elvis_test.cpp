@@ -6,7 +6,6 @@
 #include <utility>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -855,5 +854,4 @@ TEST_CASE("Testing tuple_elvis non-member functions", "[tuple_elvis]") {
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

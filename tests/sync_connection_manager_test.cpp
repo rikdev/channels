@@ -9,7 +9,6 @@
 #include <thread>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -78,5 +77,4 @@ TEST_CASE("Testing class sync_connection_manager", "[sync_connection_manager]") 
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

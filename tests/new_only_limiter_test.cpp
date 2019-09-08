@@ -4,7 +4,6 @@
 #include <catch2/catch.hpp>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -41,5 +40,4 @@ TEST_CASE("testing with non-empty parameters", "[new_only_limiter]") {
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

@@ -4,7 +4,7 @@
 #include <utility>
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 // inline_executor
 

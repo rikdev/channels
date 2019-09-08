@@ -9,7 +9,7 @@
 #include <utility>
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 /// This class keeps `channels::connection` objects and can synchronously disconnect its.
 class sync_connection_manager {

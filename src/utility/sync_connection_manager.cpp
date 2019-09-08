@@ -1,7 +1,7 @@
 #include "utility/sync_connection_manager.h"
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 sync_connection_manager::~sync_connection_manager() noexcept
 {

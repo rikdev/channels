@@ -2,7 +2,6 @@
 #include <catch2/catch.hpp>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -65,5 +64,4 @@ TEST_CASE("sync_tracker::lock_all called for released sync_tracker", "[sync_trac
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

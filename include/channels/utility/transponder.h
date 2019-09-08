@@ -10,7 +10,7 @@
 #include <utility>
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 /// A class `transponder` receives a value from source channel and dispatch it to callback function which can process
 /// or filter this value and send result to the destination channel.

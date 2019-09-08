@@ -8,7 +8,6 @@
 #include <cstddef>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -205,5 +204,4 @@ TEST_CASE("Testing make_filter_adaptor", "[transponder]") {
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

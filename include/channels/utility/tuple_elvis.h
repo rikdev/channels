@@ -13,7 +13,7 @@
 #endif
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 namespace tuple_elvis_detail {
 

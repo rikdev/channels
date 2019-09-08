@@ -5,7 +5,7 @@
 #include <utility>
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 /// This class is a wrapper for a `buffered_channel` that skips sending args to the channel if its equals to the last
 /// args sent.

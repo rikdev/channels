@@ -4,7 +4,6 @@
 #include <catch2/catch.hpp>
 
 namespace channels {
-namespace utility {
 namespace test {
 namespace {
 
@@ -17,5 +16,4 @@ TEST_CASE("testing default sends limit", "[send_once_limiter]") {
 
 } // namespace
 } // namespace test
-} // namespace utility
 } // namespace channels

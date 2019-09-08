@@ -5,7 +5,7 @@
 #include <utility>
 
 namespace channels {
-namespace utility {
+inline namespace utility {
 
 /// This class limits the number of calls to the transmitter to one.
 /// \note You can write your user-defined limiters using this class as an example and combine them to add constraints
