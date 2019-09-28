@@ -183,7 +183,7 @@ public:
 		: item_{other.item_}
 	{}
 
-	iterator& operator=(const iterator<value_type>& other) noexcept
+	iterator& operator=(const iterator<value_type>& other) noexcept // NOLINT(cert-oop54-cpp)
 	{
 		item_ = other.item_;
 		return *this;

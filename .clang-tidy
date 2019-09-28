@@ -12,8 +12,10 @@ Checks: '*,
   -hicpp-use-override,
   -llvm-header-guard,
   -modernize-concat-nested-namespaces,
+  -modernize-use-trailing-return-type,
   -performance-noexcept-move-constructor,
   -readability-avoid-const-params-in-decls,
+  -readability-convert-member-functions-to-static,
   -readability-named-parameter,
   -readability-uppercase-literal-suffix
 '

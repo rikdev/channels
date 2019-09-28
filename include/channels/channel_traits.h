@@ -9,6 +9,6 @@ struct channel_traits {
 };
 
 template<typename Channel>
-constexpr bool is_channel_v = channel_traits<Channel>::is_channel;
+constexpr bool is_channel_v = channel_traits<Channel>::is_channel; // NOLINT(misc-definitions-in-headers)
 
 } // namespace channels
