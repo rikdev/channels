@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
 # Declaring
 project(Channels
@@ -80,7 +80,7 @@ target_sources(${LIBRARY_NAME}
 target_compile_options(${LIBRARY_NAME}
   PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/analyze>
-  $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wdocumentation>
+  $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wdocumentation>
 )
 target_compile_features(${LIBRARY_NAME} PUBLIC cxx_std_14)
 set_target_properties(${LIBRARY_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
