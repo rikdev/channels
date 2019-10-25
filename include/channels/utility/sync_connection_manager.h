@@ -1,11 +1,8 @@
 #pragma once
-#include "../channel_traits.h"
-#include "../connection.h"
 #include "../detail/compatibility/compile_features.h"
-#include "../detail/compatibility/type_traits.h"
+#include "connection_manager.h"
 #include "executors.h"
 #include "sync_tracker.h"
-#include <forward_list>
 #include <utility>
 
 namespace channels {
@@ -47,10 +44,8 @@ public:
 	CHANNELS_NODISCARD const sync_tracker& get_tracker() const noexcept;
 
 private:
-	connection& add_connection(connection&& connection);
-
 	sync_tracker tracker_;
-	std::forward_list<connection> connections_;
+	connection_manager connection_manager_;
 };
 
 // implementation
@@ -58,23 +53,18 @@ private:
 template<typename Channel, typename Callback>
 connection& sync_connection_manager::connect(const Channel& channel, Callback&& callback)
 {
-	static_assert(is_channel_v<detail::compatibility::remove_cvref_t<Channel>>, "Channel type must be channel");
-
-	connection c =
-		channel.connect(make_tracking_executor(tracker_.get_tracked_object()), std::forward<Callback>(callback));
-	return add_connection(std::move(c));
+	return connection_manager_.connect(
+		channel, make_tracking_executor(tracker_.get_tracked_object()), std::forward<Callback>(callback));
 }
 
 template<typename Channel, typename Executor, typename Callback>
 connection& sync_connection_manager::connect(
 	const Channel& channel, Executor&& executor, Callback&& callback)
 {
-	static_assert(is_channel_v<detail::compatibility::remove_cvref_t<Channel>>, "Channel type must be channel");
-
-	connection c = channel.connect(
+	return connection_manager_.connect(
+		channel,
 		make_tracking_executor(tracker_.get_tracked_object(), std::forward<Executor>(executor)),
 		std::forward<Callback>(callback));
-	return add_connection(std::move(c));
 }
 
 } // namespace utility
