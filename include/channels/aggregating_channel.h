@@ -61,7 +61,7 @@ public:
 	aggregating_channel() = default;
 
 	/// \see channels::channel::is_valid
-	CHANNELS_NODISCARD bool is_valid() const noexcept;
+	using base_type::is_valid;
 
 	/// \see channels::channel::connect
 	template<typename Callback>
@@ -401,12 +401,6 @@ connection aggregating_channel<R(Ts...)>::connect(Executor&& executor, Callback&
 {
 	aggregating_callback<std::decay_t<Callback>> aggregating_callback{std::forward<Callback>(callback)};
 	return base_type::connect(std::forward<Executor>(executor), std::move(aggregating_callback));
-}
-
-template<typename R, typename... Ts>
-bool aggregating_channel<R(Ts...)>::is_valid() const noexcept
-{
-	return base_type::is_valid();
 }
 
 template<typename R, typename... Ts>
