@@ -8,7 +8,7 @@ namespace detail {
 namespace compatibility {
 
 #ifdef CHANNELS_CPP_LIB_INVOKE
-using std::invoke; // NOLINT
+using std::invoke; // NOLINT(misc-unused-using-decls)
 #else
 template<typename F, typename... Args>
 decltype(auto) invoke(F&& f, Args&&... args) noexcept(noexcept(std::forward<F>(f)(std::forward<Args>(args)...)))

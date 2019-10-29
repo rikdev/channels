@@ -8,10 +8,10 @@ namespace detail {
 namespace compatibility {
 
 #ifdef CHANNELS_CPP_LIB_IS_INVOCABLE
-using std::is_invocable; // NOLINT
-using std::is_invocable_v; // NOLINT
-using std::invoke_result; // NOLINT
-using std::invoke_result_t; // NOLINT
+using std::is_invocable; // NOLINT(misc-unused-using-decls)
+using std::is_invocable_v; // NOLINT(misc-unused-using-decls)
+using std::invoke_result; // NOLINT(misc-unused-using-decls)
+using std::invoke_result_t; // NOLINT(misc-unused-using-decls)
 #else
 namespace type_traits_detail {
 

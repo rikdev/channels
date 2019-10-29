@@ -10,7 +10,7 @@ namespace detail {
 namespace compatibility {
 
 #ifdef CHANNELS_CPP_LIB_APPLY
-using std::apply; // NOLINT
+using std::apply; // NOLINT(misc-unused-using-decls)
 #else
 template<typename F, typename Tuple, size_t... I>
 constexpr decltype(auto) apply_impl(F&& f, Tuple&& t, std::index_sequence<I...>)
