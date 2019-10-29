@@ -51,7 +51,7 @@ template<typename... Ts>
 template<typename Callback>
 typename shared_state<Ts...>::invocable_socket& shared_state<Ts...>::connect(Callback&& callback)
 {
-#if __cpp_lib_is_invocable
+#ifdef CHANNELS_CPP_LIB_IS_INVOCABLE
 	static_assert(std::is_invocable_v<Callback, Ts...>, "Callback must be invocable with channel parameters");
 #endif
 
@@ -85,7 +85,7 @@ template<typename... Ts>
 template<typename Executor, typename Callback>
 typename shared_state<Ts...>::invocable_socket& shared_state<Ts...>::connect(Executor&& executor, Callback&& callback)
 {
-#if __cpp_lib_is_invocable
+#ifdef CHANNELS_CPP_LIB_IS_INVOCABLE
 	static_assert(std::is_invocable_v<Callback, const Ts&...>, "Callback must be invocable with channel parameters");
 #endif
 

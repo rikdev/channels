@@ -1,11 +1,12 @@
 #pragma once
+#include "compile_features.h"
 #include <shared_mutex>
 
 namespace channels {
 namespace detail {
 namespace compatibility {
 
-#if __cpp_lib_shared_mutex
+#ifdef CHANNELS_CPP_LIB_SHARED_MUTEX
 using std::shared_mutex; // NOLINT
 #else
 using shared_mutex = std::shared_timed_mutex;

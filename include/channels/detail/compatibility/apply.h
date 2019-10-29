@@ -1,4 +1,5 @@
 #pragma once
+#include "compile_features.h"
 #include "functional.h"
 #include <tuple>
 #include <type_traits>
@@ -8,7 +9,7 @@ namespace channels {
 namespace detail {
 namespace compatibility {
 
-#if __cpp_lib_apply
+#ifdef CHANNELS_CPP_LIB_APPLY
 using std::apply; // NOLINT
 #else
 template<typename F, typename Tuple, size_t... I>

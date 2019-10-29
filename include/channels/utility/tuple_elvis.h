@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-#if __cpp_lib_optional
+#ifdef CHANNELS_CPP_LIB_OPTIONAL
 #include <optional>
 #endif
 
@@ -121,28 +121,28 @@ public:
 
 	/// converts tuple_elvis to another optional type U
 	template<typename U
-#if __cpp_lib_optional
+#ifdef CHANNELS_CPP_LIB_OPTIONAL
 		= std::optional<value_type>
 #endif
 	>
 	U to_optional() const &;
 
 	template<typename U
-#if __cpp_lib_optional
+#ifdef CHANNELS_CPP_LIB_OPTIONAL
 		= std::optional<value_type>
 #endif
 	>
 	U to_optional() &;
 
 	template<typename U
-#if __cpp_lib_optional
+#ifdef CHANNELS_CPP_LIB_OPTIONAL
 		= std::optional<value_type>
 #endif
 	>
 	U to_optional() const &&;
 
 	template<typename U
-#if __cpp_lib_optional
+#ifdef CHANNELS_CPP_LIB_OPTIONAL
 		= std::optional<value_type>
 #endif
 	>

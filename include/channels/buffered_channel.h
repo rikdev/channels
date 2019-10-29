@@ -17,7 +17,7 @@ namespace channels {
 /// The class `buffered_channel` is similar to `channels::channel` but it stores the last value sent.
 template<typename... Ts>
 class buffered_channel {
-#if __cpp_lib_logical_traits
+#ifdef CHANNELS_CPP_LIB_LOGICAL_TRAITS
 	static_assert(
 		!std::disjunction_v<std::is_reference<Ts>...>,
 		"Instantiation of buffered_channel with a reference type is ill-formed");

@@ -1,4 +1,5 @@
 #pragma once
+#include "compile_features.h"
 #include <functional>
 #include <utility>
 
@@ -6,7 +7,7 @@ namespace channels {
 namespace detail {
 namespace compatibility {
 
-#if __cpp_lib_invoke
+#ifdef CHANNELS_CPP_LIB_INVOKE
 using std::invoke; // NOLINT
 #else
 template<typename F, typename... Args>

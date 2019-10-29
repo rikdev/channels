@@ -337,7 +337,7 @@ class aggregating_channel<R(Ts...)>::aggregating_callback {
 	// Fake parameter is needed to avoid the GCC compilation error: "explicit specialization on non-namespace scope"
 	template<typename T, typename Fake = void>
 	struct binder {
-#if __cpp_lib_is_invocable
+#ifdef CHANNELS_CPP_LIB_IS_INVOCABLE
 		static_assert(
 			std::is_convertible<std::invoke_result_t<Callback, Ts...>, R>::value,
 			"R must be convertible from Callback return value");
