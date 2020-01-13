@@ -62,6 +62,23 @@ TEST_CASE("sync_tracker::lock_all called for released sync_tracker", "[sync_trac
 	CHECK_THROWS_AS(tracker.lock_all(), tracker_error);
 }
 
+TEST_CASE("using sync_tracker by function execute", "[sync_tracker][execute]") {
+	unsigned calls_number = 0;
+	auto task = [&calls_number] { ++calls_number; };
+
+	SECTION("unreleased tracker") {
+		sync_tracker tracker;
+		execute(tracker.get_tracked_object(), task);
+		CHECK(calls_number == 1);
+
+		tracker.sync_release();
+	}
+	SECTION("released tracker") {
+		execute(sync_tracker::tracked_object{}, task);
+		CHECK(calls_number == 0);
+	}
+}
+
 } // namespace
 } // namespace test
 } // namespace channels

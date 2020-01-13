@@ -4,6 +4,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <utility>
 
 namespace channels {
 inline namespace utility {
@@ -98,6 +99,19 @@ private:
 struct tracker_error : std::logic_error {
 	using logic_error::logic_error;
 };
+
+/// Runs task immediately in the caller's thread.
+template<typename Function>
+void execute(const sync_tracker::tracked_object& executor, Function&& task);
+
+// implementation
+
+template<typename Function>
+void execute(const sync_tracker::tracked_object& executor, Function&& task)
+{
+	if (const auto lock = executor.lock())
+		std::forward<Function>(task)();
+}
 
 } // namespace utility
 } // namespace channels
