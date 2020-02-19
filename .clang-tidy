@@ -23,8 +23,6 @@ HeaderFilterRegex: '.*'
 CheckOptions:
   - key:   cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
     value: 1
-  - key:   modernize-use-override.IgnoreDestructors
-    value: 1
   - key:   performance-unnecessary-value-param.AllowedTypes
     value: iterator
   - key:   readability-braces-around-statements.ShortStatementLines

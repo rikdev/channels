@@ -178,7 +178,7 @@ public:
 	execution_shared_state_base& operator=(const execution_shared_state_base&) = delete;
 	execution_shared_state_base& operator=(execution_shared_state_base&&) = delete;
 
-	~execution_shared_state_base()
+	~execution_shared_state_base() override
 	{
 		if (!is_ready())
 			future_shared_state_.make_ready();
