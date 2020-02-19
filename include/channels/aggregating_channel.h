@@ -4,7 +4,6 @@
 #include "detail/compatibility/apply.h"
 #include "detail/compatibility/compile_features.h"
 #include "detail/future_shared_state.h"
-#include "fwd.h"
 #include <cassert>
 #include <exception>
 #include <memory>
@@ -29,6 +28,9 @@ concept ChannelAggregator = requires(T a, R r) {
 	{a.apply_exception(std::exception_ptr{})} -> continuation_status;
 };
 #endif
+
+template<typename F>
+class aggregating_channel;
 
 /// The class `aggregating_channel` is similar to `channels::channel` but it can collect return values from callback
 /// functions.
