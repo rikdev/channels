@@ -12,7 +12,7 @@ class socket_base;
 } // namespace detail
 
 /// A handler of channel connection.
-class connection {
+class CHANNELS_NODISCARD connection {
 public:
 	/// Constructs a disconnected `connection` object.
 	/// \post `is_connected() == false`.
