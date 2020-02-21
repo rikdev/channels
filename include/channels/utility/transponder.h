@@ -7,6 +7,7 @@
 #include "../detail/compatibility/type_traits.h"
 #include "../detail/type_traits.h"
 #include "../transmitter.h"
+#include <type_traits>
 #include <utility>
 
 namespace channels {
@@ -102,48 +103,57 @@ private:
 
 // adaptors
 
-/// Creates an adaptor for the class `transponder` that passes `transform_function` return value to the transmitter.
-/// \param transform_function A function that receives value from transponder source channel,
-///                           processes it and return result of processing.
-///                           Function type must match the concept `std::Invocable<Callback, Ts...>` where
-///                           Ts - types of parameters for transponder source channel.
-///                           Function must return either void or D or std::tuple<Ds...> where
-///                           D - type of parameter for transponder destination channel if this channel has only one
-///                               parameter.
-///                           Ds - types of parameters for transponder destination channel.
+/// It is an adaptor for the class `transponder` that passes `transform_function` return value to the transmitter.
+/// \tparam Function is a type of function that receives value from transponder source channel,
+///                  processes it and return result of processing.
+///                  This type must match the concept `std::invocable<Function, Ts...>` where:
+///                    Ts - types of parameters for transponder source channel.
+///                  Function must return either void or D or std::tuple<Ds...> where:
+///                    D - type of parameter for transponder destination channel if this channel has only one parameter.
+///                    Ds - types of parameters for transponder destination channel.
 ///
 /// Example:
 /// \code
-/// channels::transponder<channels::channel<std::string>> lexeme_source;
+/// channels::transmitter<channels::channel<std::string>> lexeme_source;
 /// ...
 /// channels::utility::transponder<channels::channel<token_type, std::string>> tokenized_lexeme_source{
 /// 	lexeme_source.get_channel(),
-/// 	[](const std::string& lexeme) { return std::make_tuple(tokenize(lexeme), lexeme); }
+/// 	transform_adaptor{[](const std::string& lexeme) { return std::make_tuple(tokenize(lexeme), lexeme); }}
 /// };
 /// ...
 /// \endcode
-template<typename Callback>
-CHANNELS_NODISCARD constexpr auto make_transform_adaptor(Callback transform_function);
+template<typename Function>
+class transform_adaptor;
 
-/// Creates an adaptor for the class `transponder` that passes arguments to the transmitter
+#if __cpp_deduction_guides
+template<typename Function>
+transform_adaptor(Function)->transform_adaptor<Function>;
+#endif
+
+/// It is an adaptor for the class `transponder` that passes arguments to the transmitter
 /// if `filter_predicate` function return true.
-/// \param filter_predicate A predicate function.
-///                         Callback type must match the concept `std::Predicate<Callback, Ts...>` where
+/// \param Function is a type of predicate function.
+///        This type must match the concept `std::predicate<Function, Ts...>` where
 ///                         Ts - types of parameters for transponder source channel.
 ///
 /// Example:
 /// \code
 /// using log_channel_type = channels::channel<std::string>;
-/// channels::transponder<log_channel_type> log_source;
+/// channels::transmitter<log_channel_type> log_source;
 /// ...
 /// channels::utility::transponder<log_channel_type> insensitive_log_source{
 /// 	log_source.get_channel(),
-/// 	[](const std::string& log) { return !has_sensitive_data(log); }
+/// 	filter_adaptor{[](const std::string& log) { return !has_sensitive_data(log); }}
 /// };
 /// ...
 /// \endcode
-template<typename Callback>
-CHANNELS_NODISCARD constexpr auto make_filter_adaptor(Callback filter_predicate);
+template<typename Predicate>
+class filter_adaptor;
+
+#if __cpp_deduction_guides
+template<typename Predicate>
+filter_adaptor(Predicate)->filter_adaptor<Predicate>;
+#endif
 
 // implementation
 
@@ -226,16 +236,16 @@ private:
 
 // transform_adaptor
 
-namespace transponder_detail {
-
 template<typename Function>
-class transform_adaptor {
+class CHANNELS_NODISCARD transform_adaptor {
 	template<typename... Args>
 	using function_result_type = detail::compatibility::invoke_result_t<Function, Args...>;
 
 public:
-	constexpr explicit transform_adaptor(Function transform_function)
-		: transform_function_{std::move(transform_function)}
+	template<typename F>
+	constexpr explicit transform_adaptor(F&& transform_function)
+		noexcept(std::is_nothrow_constructible<Function, F>::value)
+		: transform_function_{std::forward<F>(transform_function)}
 	{}
 
 	template<typename Transmitter, typename... Args>
@@ -271,23 +281,41 @@ private:
 	Function transform_function_;
 };
 
-} // namespace transponder_detail
-
-template<typename Function>
-constexpr auto make_transform_adaptor(Function transform_function)
+/// Creates transform_adaptor object.
+template<typename F>
+constexpr auto make_transform_adaptor(F&& transform_function)
+	noexcept(std::is_nothrow_constructible<transform_adaptor<std::decay_t<F>>, F>::value)
 {
-	return transponder_detail::transform_adaptor<Function>{std::move(transform_function)};
+	return transform_adaptor<std::decay_t<F>>{std::forward<F>(transform_function)};
 }
 
 // filter_adaptor
 
-template<typename Function>
-constexpr auto make_filter_adaptor(Function filter_predicate)
+template<typename Predicate>
+class CHANNELS_NODISCARD filter_adaptor {
+public:
+	template<typename P>
+	constexpr explicit filter_adaptor(P&& filter_predicate) noexcept(std::is_nothrow_constructible<Predicate, P>::value)
+		: filter_predicate_{std::forward<P>(filter_predicate)}
+	{}
+
+	template<typename Transmitter, typename... Args>
+	void operator()(Transmitter& transmitter, Args&&... args)
+	{
+		if (detail::compatibility::invoke(filter_predicate_, args...))
+			transmitter(std::forward<decltype(args)>(args)...);
+	}
+
+private:
+	Predicate filter_predicate_;
+};
+
+/// Creates filter_adaptor object.
+template<typename P>
+constexpr auto make_filter_adaptor(P&& filter_predicate)
+	noexcept(std::is_nothrow_constructible<filter_adaptor<std::decay_t<P>>, P>::value)
 {
-	return [predicate = std::move(filter_predicate)](auto& transmitter, auto&&... args) mutable {
-			if (detail::compatibility::invoke(predicate, args...))
-				transmitter(std::forward<decltype(args)>(args)...);
-		};
+	return filter_adaptor<std::decay_t<P>>{std::forward<P>(filter_predicate)};
 }
 
 } // namespace utility
