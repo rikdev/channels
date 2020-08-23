@@ -215,8 +215,8 @@ bool intrusive_list::empty() const noexcept
 
 bool intrusive_list::contains(const const_pointer item_ptr) const noexcept
 {
-	const bool result = std::any_of(begin(), end(), [item_ptr](const node& n) { return &n == item_ptr; });
-	assert(std::any_of(rbegin(), rend(), [item_ptr](const node& n) { return &n == item_ptr; }) == result); // NOLINT
+	const bool result = std::any_of(begin(), end(), [item_ptr](const node& n) noexcept { return &n == item_ptr; });
+	assert(std::any_of(rbegin(), rend(), [item_ptr](const node& n) noexcept { return &n == item_ptr; }) == result); // NOLINT
 
 	return result;
 }
