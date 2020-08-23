@@ -39,7 +39,7 @@ inline namespace utility {
 /// 	location_source.get_channel(),
 /// 	[](auto& transmitter, const geo_point& point) {
 /// 		if (is_correct(point))
-/// 			transmitter(to_mercator(point)); }
+/// 			transmitter.send(to_mercator(point)); }
 /// };
 /// ...
 /// map_point_channel_type map_point_channel = map_point_source.get_channel();
@@ -253,7 +253,7 @@ public:
 	operator()(Transmitter& transmitter, Args&&... args)
 	{
 		detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);
-		transmitter();
+		transmitter.send();
 	}
 
 	template<typename Transmitter, typename... Args>
@@ -263,7 +263,7 @@ public:
 	operator()(Transmitter& transmitter, Args&&... args)
 	{
 		decltype(auto) result = detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);
-		transmitter(std::move(result));
+		transmitter.send(std::move(result));
 	}
 
 	template<typename Transmitter, typename... Args>
@@ -303,7 +303,7 @@ public:
 	void operator()(Transmitter& transmitter, Args&&... args)
 	{
 		if (detail::compatibility::invoke(filter_predicate_, args...))
-			transmitter(std::forward<decltype(args)>(args)...);
+			transmitter.send(std::forward<decltype(args)>(args)...);
 	}
 
 private:

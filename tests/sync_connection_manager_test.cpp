@@ -31,7 +31,7 @@ TEST_CASE("Testing class sync_connection_manager", "[sync_connection_manager]") 
 		connection_manager.connect(channel, &executor, [&calls_number2] { ++calls_number2; });
 
 		SECTION("emitting before sync_release") {
-			transmitter();
+			transmitter.send();
 			executor.run_all_tasks();
 
 			CHECK(calls_number1 == 1u);
@@ -39,7 +39,7 @@ TEST_CASE("Testing class sync_connection_manager", "[sync_connection_manager]") 
 		}
 		SECTION("emitting after sync_release") {
 			connection_manager.sync_release();
-			transmitter();
+			transmitter.send();
 			executor.run_all_tasks();
 
 			CHECK(calls_number1 == 0u);
@@ -55,7 +55,7 @@ TEST_CASE("Testing class sync_connection_manager", "[sync_connection_manager]") 
 		connection_manager.connect(channel, &executor, executor.make_synchronizable_callback([] {}));
 		connection_manager.connect(channel, &executor, executor.make_synchronizable_callback([] {}));
 
-		transmitter();
+		transmitter.send();
 
 		std::atomic<bool> worker_release_started{false};
 		std::atomic<bool> worker_release_finished{false};

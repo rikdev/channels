@@ -200,7 +200,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		transmitter<channel_type> transmitter;
 
 		using aggregator_type = box_aggregator<typename channel_type::aggregator_argument_type>;
-		std::future<aggregator_type> future = transmitter(aggregator_type{});
+		std::future<aggregator_type> future = transmitter.send(aggregator_type{});
 		const aggregator_type aggregator = future.get();
 		CHECK(aggregator.get_results().empty());
 	}
@@ -245,7 +245,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			using aggregator_type = box_aggregator<channel_type::aggregator_argument_type>;
 			constexpr int transmitted_value = 1;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{}, transmitted_value);
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{}, transmitted_value);
 			executor.resume_callbacks();
 
 			const aggregator_type aggregator = future.get();
@@ -259,7 +259,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			using aggregator_type = limited_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 			constexpr int transmitted_value = 2;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{1}, transmitted_value);
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{1}, transmitted_value);
 			executor.resume_callbacks();
 
 			const aggregator_type::base_type aggregator = future.get().base;
@@ -272,7 +272,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 			using aggregator_type = limited_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 			constexpr int transmitted_value = 3;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{unlimited, 1}, transmitted_value);
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{unlimited, 1}, transmitted_value);
 			executor.resume_callbacks();
 
 			const aggregator_type::base_type aggregator = future.get().base;
@@ -284,7 +284,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		SECTION("testing with aggregator that throw exception in apply_result method") {
 			using aggregator_type = limited_throw_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{1}, 4);
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{1}, 4);
 			executor.resume_callbacks();
 
 			CHECK_THROWS_AS(future.get(), std::runtime_error);
@@ -292,7 +292,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		SECTION("testing with aggregator that throw exception in apply_exception method") {
 			using aggregator_type = limited_throw_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{unlimited, 1}, 5);
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{unlimited, 1}, 5);
 			executor.resume_callbacks();
 
 			CHECK_THROWS_AS(future.get(), std::runtime_error);
@@ -316,7 +316,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		SECTION("testing with aggregator that stop aggregating by value") {
 			using aggregator_type = limited_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{1});
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{1});
 			executor.resume_callbacks();
 
 			const aggregator_type::base_type aggregator = future.get().base;
@@ -328,7 +328,7 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 		SECTION("testing with aggregator that stop aggregating by exception") {
 			using aggregator_type = limited_aggregator<box_aggregator<channel_type::aggregator_argument_type>>;
 
-			std::future<aggregator_type> future = transmitter(aggregator_type{unlimited, 1});
+			std::future<aggregator_type> future = transmitter.send(aggregator_type{unlimited, 1});
 			executor.resume_callbacks();
 
 			const aggregator_type::base_type aggregator = future.get().base;

@@ -10,8 +10,8 @@ namespace {
 TEST_CASE("testing default sends limit", "[send_once_limiter]") {
 	transmitter<send_once_limiter<channel<>>> transmitter;
 
-	CHECK_NOTHROW(transmitter());
-	CHECK_THROWS_AS(transmitter(), transmitter_error);
+	CHECK_NOTHROW(transmitter.send());
+	CHECK_THROWS_AS(transmitter.send(), transmitter_error);
 }
 
 } // namespace

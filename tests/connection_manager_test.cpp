@@ -21,7 +21,7 @@ TEST_CASE("Testing class connection_manager", "[connection_manager]") {
 			unsigned calls_number = 0;
 			connection& c = manager.connect(channel, [&calls_number] { ++calls_number; });
 
-			transmitter();
+			transmitter.send();
 
 			CHECK(c.is_connected());
 			CHECK(calls_number == 1u);
@@ -31,7 +31,7 @@ TEST_CASE("Testing class connection_manager", "[connection_manager]") {
 			unsigned calls_number = 0;
 			connection& c = manager.connect(channel, &executor, [&calls_number] { ++calls_number; });
 
-			transmitter();
+			transmitter.send();
 			executor.run_all_tasks();
 
 			CHECK(c.is_connected());
@@ -49,7 +49,7 @@ TEST_CASE("Testing class connection_manager", "[connection_manager]") {
 
 		manager.release();
 
-		transmitter();
+		transmitter.send();
 		executor.run_all_tasks();
 
 		CHECK(calls_number1 == 0u);

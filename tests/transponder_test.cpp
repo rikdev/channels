@@ -24,20 +24,20 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 		transmitter<channel<std::string>> source_transmitter;
 		using channel_type = buffered_channel<std::size_t>;
 		const auto callback = [](transmitter<channel_type>& transmitter, const std::string& s) mutable {
-				transmitter(s.length());
+				transmitter.send(s.length());
 			};
 		channel_type destination_channel;
 
 		SECTION("without executor") {
 			const transponder<channel_type> transponder{source_transmitter.get_channel(), callback};
 			destination_channel = transponder.get_channel();
-			source_transmitter(test_string);
+			source_transmitter.send(test_string);
 		}
 		SECTION("with executor") {
 			executor executor;
 			const transponder<channel_type> transponder{source_transmitter.get_channel(), &executor, callback};
 			destination_channel = transponder.get_channel();
-			source_transmitter(test_string);
+			source_transmitter.send(test_string);
 			executor.run_all_tasks();
 		}
 
@@ -47,18 +47,18 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 	SECTION("testing assign methods") {
 		transmitter<channel<>> source_transmitter;
 		using channel_type = buffered_channel<>;
-		const auto callback = [](transmitter<channel_type>& transmitter) { transmitter(); };
+		const auto callback = [](transmitter<channel_type>& transmitter) { transmitter.send(); };
 
 		transponder<channel_type> transponder;
 
 		SECTION("without executor") {
 			transponder.assign(source_transmitter.get_channel(), callback);
-			source_transmitter();
+			source_transmitter.send();
 		}
 		SECTION("with executor") {
 			executor executor;
 			transponder.assign(source_transmitter.get_channel(), &executor, callback);
-			source_transmitter();
+			source_transmitter.send();
 			executor.run_all_tasks();
 		}
 
@@ -72,7 +72,7 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 		channel_type destination_channel1;
 		channel_type destination_channel2;
 
-		const auto callback = [](transmitter<channel_type>& transmitter) { transmitter(); };
+		const auto callback = [](transmitter<channel_type>& transmitter) { transmitter.send(); };
 
 		SECTION("without executor") {
 			transponder<channel_type> transponder{source_transmitter1.get_channel(), callback};
@@ -81,8 +81,8 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 			transponder.assign(source_transmitter2.get_channel(), callback);
 			destination_channel2 = transponder.get_channel();
 
-			source_transmitter1();
-			source_transmitter2();
+			source_transmitter1.send();
+			source_transmitter2.send();
 		}
 		SECTION("with executor") {
 			executor executor;
@@ -92,8 +92,8 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 			transponder.assign(source_transmitter2.get_channel(), &executor, callback);
 			destination_channel2 = transponder.get_channel();
 
-			source_transmitter1();
-			source_transmitter2();
+			source_transmitter1.send();
+			source_transmitter2.send();
 			executor.run_all_tasks();
 		}
 
@@ -107,11 +107,11 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 		unsigned calls_number = 0;
 		transponder<channel_type> transponder{
 			source_transmitter.get_channel(), [&calls_number](transmitter<channel_type>&) { ++calls_number; }};
-		source_transmitter();
+		source_transmitter.send();
 		CHECK(transponder.get_channel().is_valid());
 
 		transponder.reset();
-		source_transmitter();
+		source_transmitter.send();
 		CHECK_FALSE(transponder.get_channel().is_valid());
 		CHECK(calls_number == 1);
 	}

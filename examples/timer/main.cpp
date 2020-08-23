@@ -24,5 +24,5 @@ int main()
 	std::cout << "Press enter to exit\n";
 	std::cin.get();
 
-	cancellation_token_source();
+	cancellation_token_source.send();
 }

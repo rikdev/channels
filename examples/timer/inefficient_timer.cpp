@@ -28,6 +28,6 @@ void inefficient_timer::run()
 			return;
 
 		lock.unlock();
-		transmitter_(++tick_count_);
+		transmitter_.send(++tick_count_);
 	}
 }

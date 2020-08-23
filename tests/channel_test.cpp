@@ -56,10 +56,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 			const connection connection = channel.connect([&calls_number] { ++calls_number; });
 			CHECK(calls_number == 0u);
 
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number == 1u);
 
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number == 2u);
 		}
 		SECTION("with executor") {
@@ -67,12 +67,12 @@ TEST_CASE("Testing class channel", "[channel]") {
 			unsigned calls_number = 0;
 			const connection connection = channel.connect(&executor, [&calls_number] { ++calls_number; });
 
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number == 0u);
 			executor.run_all_tasks();
 			CHECK(calls_number == 1u);
 
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number == 1u);
 			executor.run_all_tasks();
 			CHECK(calls_number == 2u);
@@ -87,10 +87,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 			const connection connection = channel.connect(tools::callback_function);
 
 			unsigned calls_number = 0;
-			transmitter(calls_number);
+			transmitter.send(calls_number);
 			CHECK(calls_number == 1u);
 
-			transmitter(calls_number);
+			transmitter.send(calls_number);
 			CHECK(calls_number == 2u);
 		}
 		SECTION("with executor") {
@@ -98,11 +98,11 @@ TEST_CASE("Testing class channel", "[channel]") {
 			const connection connection = channel.connect(&executor, tools::callback_function);
 
 			unsigned calls_number = 0;
-			transmitter(calls_number);
+			transmitter.send(calls_number);
 			executor.run_all_tasks();
 			CHECK(calls_number == 1u);
 
-			transmitter(calls_number);
+			transmitter.send(calls_number);
 			executor.run_all_tasks();
 			CHECK(calls_number == 2u);
 		}
@@ -125,7 +125,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 				CHECK(s == string_value);
 				++calls_number1;
 			});
-			transmitter(1.f, "1");
+			transmitter.send(1.f, "1");
 			CHECK(calls_number1 == 1u);
 
 			float_value = 2.f;
@@ -138,7 +138,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 				CHECK(s == string_value);
 				++calls_number2;
 			});
-			transmitter(2.f, "2");
+			transmitter.send(2.f, "2");
 			CHECK(calls_number1 == 2u);
 			CHECK(calls_number2 == 1u);
 		}
@@ -152,7 +152,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 				CHECK(s == string_value);
 				++calls_number1;
 			});
-			transmitter(1.f, "1");
+			transmitter.send(1.f, "1");
 			executor.run_all_tasks();
 			CHECK(calls_number1 == 1u);
 
@@ -167,7 +167,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 				CHECK(s == string_value);
 				++calls_number2;
 			});
-			transmitter(2.f, "2");
+			transmitter.send(2.f, "2");
 			executor.run_all_tasks();
 			CHECK(calls_number1 == 2u);
 			CHECK(calls_number2 == 1u);
@@ -189,7 +189,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			const connection connection = channel.connect(&test_struct::set_value);
 
 			test_struct data;
-			transmitter(&data, 5);
+			transmitter.send(&data, 5);
 			CHECK(data.value == 5);
 		}
 		SECTION("with executor") {
@@ -197,7 +197,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			const connection connection = channel.connect(&executor, &test_struct::set_value);
 
 			test_struct data;
-			transmitter(&data, 5);
+			transmitter.send(&data, 5);
 			executor.run_all_tasks();
 			CHECK(data.value == 5);
 		}
@@ -213,14 +213,14 @@ TEST_CASE("Testing class channel", "[channel]") {
 		SECTION("without executor") {
 			unsigned calls_number = 0;
 			const connection connection = channel.connect(tools::non_regular_callback{calls_number});
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number == 1u);
 		}
 		SECTION("with executor") {
 			tools::executor executor;
 			unsigned calls_number = 0;
 			const connection connection = channel.connect(&executor, tools::non_regular_callback{calls_number});
-			transmitter();
+			transmitter.send();
 			executor.run_all_tasks();
 			CHECK(calls_number == 1u);
 		}
@@ -237,8 +237,8 @@ TEST_CASE("Testing class channel", "[channel]") {
 				if (!connection1.is_connected())
 					connection1 = channel.connect([&calls_number] { ++calls_number; });
 			});
-		transmitter();
-		transmitter();
+		transmitter.send();
+		transmitter.send();
 		CHECK(calls_number == 1u);
 	}
 	SECTION("checking callbacks call order") {
@@ -250,7 +250,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		SECTION("without executor") {
 			const connection connection1 = channel.connect([&order] { order.push_back(1); });
 			const connection connection2 = channel.connect([&order] { order.push_back(2); });
-			transmitter();
+			transmitter.send();
 
 			REQUIRE(order.size() == 2u);
 			CHECK(order[0] == 1);
@@ -260,7 +260,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			tools::executor executor;
 			const connection connection1 = channel.connect(&executor, [&order] { order.push_back(1); });
 			const connection connection2 = channel.connect(&executor, [&order] { order.push_back(2); });
-			transmitter();
+			transmitter.send();
 			executor.run_all_tasks();
 
 			REQUIRE(order.size() == 2u);
@@ -288,7 +288,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			});
 
 		try {
-			transmitter();
+			transmitter.send();
 			FAIL("transmitter must be throw callbacks_exception");
 		}
 		catch (const callbacks_exception& transmitter_exception) {
@@ -311,10 +311,10 @@ TEST_CASE("Testing class channel", "[channel]") {
 			[&calls_number, &transmitter](const int value) {
 				++calls_number;
 				if (value != 0)
-					transmitter(0);
+					transmitter.send(0);
 			});
 
-		transmitter(1);
+		transmitter.send(1);
 		CHECK(calls_number == 2u);
 	}
 	SECTION("disconnecting") {
@@ -335,14 +335,14 @@ TEST_CASE("Testing class channel", "[channel]") {
 			connection1.disconnect();
 			CHECK_FALSE(connection1.is_connected());
 			CHECK(connection2.is_connected());
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number1 == 0u);
 			CHECK(calls_number2 == 1u);
 
 			connection2.disconnect();
 			CHECK_FALSE(connection1.is_connected());
 			CHECK_FALSE(connection2.is_connected());
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number1 == 0u);
 			CHECK(calls_number2 == 1u);
 		}
@@ -358,7 +358,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			CHECK(connection1.is_connected());
 			CHECK(connection2.is_connected());
 
-			transmitter();
+			transmitter.send();
 			connection1.disconnect();
 			CHECK_FALSE(connection1.is_connected());
 			CHECK(connection2.is_connected());
@@ -366,7 +366,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			CHECK(calls_number1 == 0u);
 			CHECK(calls_number2 == 1u);
 
-			transmitter();
+			transmitter.send();
 			connection2.disconnect();
 			CHECK_FALSE(connection1.is_connected());
 			CHECK_FALSE(connection2.is_connected());
@@ -393,14 +393,14 @@ TEST_CASE("Testing class channel", "[channel]") {
 			connection2.disconnect();
 			CHECK(connection1.is_connected());
 			CHECK_FALSE(connection2.is_connected());
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number1 == 1u);
 			CHECK(calls_number2 == 0u);
 
 			connection1.disconnect();
 			CHECK_FALSE(connection1.is_connected());
 			CHECK_FALSE(connection2.is_connected());
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number1 == 1u);
 			CHECK(calls_number2 == 0u);
 		}
@@ -417,7 +417,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			CHECK(connection2.is_connected());
 
 			connection2.disconnect();
-			transmitter();
+			transmitter.send();
 			CHECK(connection1.is_connected());
 			CHECK_FALSE(connection2.is_connected());
 			executor.run_all_tasks();
@@ -425,7 +425,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			CHECK(calls_number2 == 0u);
 
 			connection1.disconnect();
-			transmitter();
+			transmitter.send();
 			CHECK_FALSE(connection1.is_connected());
 			CHECK_FALSE(connection2.is_connected());
 			executor.run_all_tasks();
@@ -442,8 +442,8 @@ TEST_CASE("Testing class channel", "[channel]") {
 			unsigned calls_number = 0;
 			connection connection1 = channel.connect([&calls_number] { ++calls_number; });
 			const connection connection2 = channel.connect([&connection1] { connection1.disconnect(); });
-			transmitter();
-			transmitter();
+			transmitter.send();
+			transmitter.send();
 			CHECK(calls_number == 1u);
 		}
 		SECTION("reverse order") {
@@ -451,8 +451,8 @@ TEST_CASE("Testing class channel", "[channel]") {
 			connection connection1;
 			const connection connection2 = channel.connect([&connection1] { connection1.disconnect(); });
 			connection1 = channel.connect([&calls_number] { ++calls_number; });
-			transmitter();
-			transmitter();
+			transmitter.send();
+			transmitter.send();
 			CHECK(calls_number == 0u);
 		}
 	}
@@ -467,7 +467,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			unsigned calls_number2 = 0;
 			connection = channel.connect([&calls_number2] { ++calls_number2; });
 
-			transmitter();
+			transmitter.send();
 			CHECK(calls_number1 == 0u);
 			CHECK(calls_number2 == 1u);
 		}
@@ -479,7 +479,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 			unsigned calls_number2 = 0;
 			connection = channel.connect(&executor, [&calls_number2] { ++calls_number2; });
 
-			transmitter();
+			transmitter.send();
 			executor.run_all_tasks();
 			CHECK(calls_number1 == 0u);
 			CHECK(calls_number2 == 1u);
@@ -501,7 +501,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 
 			unsigned calls_number = 0;
 			connection connection = channel.connect(&executor, [&calls_number] { ++calls_number; });
-			transmitter();
+			transmitter.send();
 
 			transmitter = decltype(transmitter){};
 			CHECK(connection.is_connected());
@@ -575,7 +575,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		const connection connection2 = channel.connect(&executor, [](const notifier&) {}); // with executor
 
 		unsigned calls_number = 0;
-		transmitter([&calls_number] { ++calls_number; });
+		transmitter.send([&calls_number] { ++calls_number; });
 		CHECK(calls_number == 0u);
 
 		executor.run_all_tasks();

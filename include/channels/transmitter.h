@@ -22,7 +22,7 @@ namespace channels {
 ///
 /// channels::connection c1 = channel.connect([](int v) { .... });
 /// channels::connection c2 = transmitter.get_channel().connect([](int v) { .... });
-/// transmitter(42);
+/// transmitter.send(42);
 /// \endcode
 ///
 /// \note All copies of one transmitter link to one channel.
@@ -40,7 +40,7 @@ public:
 	/// Sends args to the channel.
 	/// \note This method is thread safe.
 	template<typename... Args>
-	decltype(auto) operator()(Args&&... args);
+	decltype(auto) send(Args&&... args);
 
 	/// \return Reference to the channel object. This channel object is always valid.
 	/// \note This method is thread safe.
@@ -58,9 +58,9 @@ private:
 
 template<typename Channel>
 template<typename... Args>
-decltype(auto) transmitter<Channel>::operator()(Args&&... args)
+decltype(auto) transmitter<Channel>::send(Args&&... args)
 {
-	return channel_(std::forward<Args>(args)...);
+	return channel_.send(std::forward<Args>(args)...);
 }
 
 template<typename Channel>
@@ -87,7 +87,7 @@ public:
 	/// \note It just calls the method Channel::apply_value
 	/// \note This method is thread safe.
 	template<typename... Args>
-	decltype(auto) operator()(Args&&... args)
+	decltype(auto) send(Args&&... args)
 	{
 		return this->apply_value(std::forward<Args>(args)...);
 	}
