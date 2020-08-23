@@ -26,11 +26,11 @@ class send_once_limiter : public Channel {
 protected:
 	using base_type::base_type;
 
-	/// First call invokes base_type::apply_value next calls throws channels::transmitter_error
+	/// First call invokes base_type::send next calls throws channels::transmitter_error
 	/// \note This method is thread safe.
 	/// \throw channels::transmitter_error If this method is called more than once
 	template<typename... Args>
-	decltype(auto) apply_value(Args&&... value);
+	decltype(auto) send(Args&&... value);
 
 private:
 	std::atomic_flag sended_ = ATOMIC_FLAG_INIT;
@@ -40,12 +40,12 @@ private:
 
 template<typename Channel>
 template<typename... Args>
-decltype(auto) send_once_limiter<Channel>::apply_value(Args&&... value)
+decltype(auto) send_once_limiter<Channel>::send(Args&&... value)
 {
 	if (sended_.test_and_set(std::memory_order_relaxed))
 		throw transmitter_error{"send_once_limiter: out of sends limit"};
 
-	return base_type::apply_value(std::forward<Args>(value)...);
+	return base_type::send(std::forward<Args>(value)...);
 }
 
 } // namespace utility

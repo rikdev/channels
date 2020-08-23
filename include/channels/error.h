@@ -8,7 +8,7 @@ namespace channels {
 
 /// The class `callbacks_exception` defines an exception object that aggregates the exceptions thrown by the callback
 /// functions.
-/// \see channels::channel::apply_value
+/// \see channels::channel::send
 class callbacks_exception : public std::exception {
 public:
 	using exceptions_type = std::vector<std::exception_ptr>;

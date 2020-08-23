@@ -76,7 +76,7 @@ public:
 protected:
 	using base_type::base_type;
 
-	/// This method is similar to method `channel::apply_value` but it additionally has the parameter `aggregator`.
+	/// This method is similar to method `channel::send` but it additionally has the parameter `aggregator`.
 	/// `Aggregator` is used to combine return values and exceptions from callback functions. If the callback function
 	/// returns a value then the `aggregating_channel` calls the `apply_result` method on the `aggregator`.
 	/// If the callback function throws a exception then the `aggregating_channel` calls the `apply_exception` method on
@@ -92,7 +92,7 @@ protected:
 	///         ready. If the aggregator throws an exception it will be returned to the future.
 	/// \pre `is_valid() == true`. The behavior is undefined if `is_valid() == false` before the call to this method.
 	template<typename Aggregator, typename... Args>
-	CHANNELS_NODISCARD std::future<std::decay_t<Aggregator>> apply_value(Aggregator&& aggregator, Args&&... args);
+	CHANNELS_NODISCARD std::future<std::decay_t<Aggregator>> send(Aggregator&& aggregator, Args&&... args);
 
 private:
 	template<typename Callback>
@@ -407,7 +407,7 @@ connection aggregating_channel<R(Ts...)>::connect(Executor&& executor, Callback&
 
 template<typename R, typename... Ts>
 template<typename Aggregator, typename... Args>
-std::future<std::decay_t<Aggregator>> aggregating_channel<R(Ts...)>::apply_value(
+std::future<std::decay_t<Aggregator>> aggregating_channel<R(Ts...)>::send(
 	Aggregator&& aggregator, Args&&... args)
 {
 	using execution_shared_state_type =
@@ -417,7 +417,7 @@ std::future<std::decay_t<Aggregator>> aggregating_channel<R(Ts...)>::apply_value
 			std::forward<Aggregator>(aggregator), std::forward<Args>(args)...);
 	auto future = execution_shared_state->get_future();
 
-	base_type::apply_value(std::move(execution_shared_state));
+	base_type::send(std::move(execution_shared_state));
 	return future;
 }
 

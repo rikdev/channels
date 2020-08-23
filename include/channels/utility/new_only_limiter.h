@@ -26,22 +26,22 @@ class new_only_limiter : public Channel {
 protected:
 	using base_type::base_type;
 
-	/// Invokes base_type::apply_value if `value` argument isn't equal to `base_type::get_value()` result.
+	/// Invokes base_type::send if `value` argument isn't equal to `base_type::get_value()` result.
 	/// \warning This class isn't thread-safe.
 	template<typename... Args>
-	void apply_value(Args&&... value);
+	void send(Args&&... value);
 };
 
 // implementation
 
 template<typename Channel>
 template<typename... Args>
-void new_only_limiter<Channel>::apply_value(Args&&... value)
+void new_only_limiter<Channel>::send(Args&&... value)
 {
 	if (this->get_value() == std::tuple<std::add_const_t<std::add_lvalue_reference_t<Args>>...>{value...})
 		return;
 
-	base_type::apply_value(std::forward<Args>(value)...);
+	base_type::send(std::forward<Args>(value)...);
 }
 
 } // namespace utility

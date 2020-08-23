@@ -84,12 +84,12 @@ public:
 	{}
 
 	/// Sends args to the channel.
-	/// \note It just calls the method Channel::apply_value
+	/// \note It just calls the method Channel::send
 	/// \note This method is thread safe.
 	template<typename... Args>
 	decltype(auto) send(Args&&... args)
 	{
-		return this->apply_value(std::forward<Args>(args)...);
+		return Channel::send(std::forward<Args>(args)...);
 	}
 };
 

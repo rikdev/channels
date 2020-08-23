@@ -69,7 +69,7 @@ class channel {
 	using shared_value_type = typename shared_state_type::shared_value_type;
 
 public:
-	/// Equals true if the `apply_value` method can be called with parameters of type `Args`.
+	/// Equals true if the `send` method can be called with parameters of type `Args`.
 	template<typename... Args>
 	static constexpr bool is_applicable = std::is_constructible<shared_value_type, cow::in_place_t, Args...>::value;
 
@@ -126,7 +126,7 @@ protected:
 	///       but calls the remaining callback functions and throws the `callbacks_exception`.
 	/// \pre `is_valid() == true`. The behavior is undefined if `is_valid() == false` before the call to this method.
 	template<typename... Args>
-	void apply_value(Args&&... args);
+	void send(Args&&... args);
 
 private:
 	template<typename... Args>
@@ -172,7 +172,7 @@ channel<Ts...>::channel(make_shared_state_tag)
 
 template<typename... Ts>
 template<typename... Args>
-void channel<Ts...>::apply_value(Args&&... args)
+void channel<Ts...>::send(Args&&... args)
 {
 	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
 

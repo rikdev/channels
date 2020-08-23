@@ -67,12 +67,12 @@ protected:
 
 	explicit buffered_channel(make_shared_state_tag);
 
-	/// This method is similar to method `channel::apply_value` but it also keeps args in the `buffered_channel` object.
+	/// This method is similar to method `channel::send` but it also keeps args in the `buffered_channel` object.
 	/// \see get_value
 	/// \warning Calling this method from the callback function will deadlock. Except when the executor breaks the
 	///          stack.
 	template<typename... Args>
-	void apply_value(Args&&... args);
+	void send(Args&&... args);
 
 private:
 	template<typename... Args>
@@ -176,7 +176,7 @@ buffered_channel<Ts...>::buffered_channel(make_shared_state_tag)
 
 template<typename... Ts>
 template<typename... Args>
-void buffered_channel<Ts...>::apply_value(Args&&... args)
+void buffered_channel<Ts...>::send(Args&&... args)
 {
 	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
 
