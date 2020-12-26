@@ -10,6 +10,7 @@
 #include <channels/transmitter.h>
 #include "tools/exception_helpers.h"
 #include "tools/executor.h"
+#include <channels/detail/compatibility/compile_features.h>
 #include <catch2/catch.hpp>
 #include <exception>
 #include <limits>
@@ -177,6 +178,48 @@ private:
 	unsigned exceptions_number_ = 0;
 };
 
+// ## custom future
+
+template<typename T>
+class future {
+public:
+	explicit future(std::shared_ptr<T> shared_state) noexcept
+		: shared_state_{std::move(shared_state)}
+	{}
+
+	CHANNELS_NODISCARD T get()
+	{
+		return std::move(*shared_state_);
+	}
+
+private:
+	std::shared_ptr<T> shared_state_;
+};
+
+template<typename T>
+class promise {
+public:
+	explicit promise(std::shared_ptr<T> shared_state) noexcept
+		: shared_state_{std::move(shared_state)}
+	{}
+
+	CHANNELS_NODISCARD future<T> get_future()
+	{
+		return future<T>{shared_state_};
+	}
+
+	void set_value(T value)
+	{
+		*shared_state_ = std::move(value);
+	}
+
+	void set_exception(std::exception_ptr)
+	{}
+
+private:
+	std::shared_ptr<T> shared_state_;
+};
+
 // # tests
 
 TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
@@ -336,6 +379,34 @@ TEST_CASE("Testing class aggregating_channel", "[aggregating_channel]") {
 
 			CHECK(aggregator.get_exceptions().size() == 1u);
 			tools::check_throws(aggregator.get_exceptions());
+		}
+	}
+	SECTION("testing with custom promise") {
+		SECTION("void callbacks") {
+			using aggregator_type = box_aggregator<void>;
+
+			transmitter<aggregating_channel<void()>> transmitter;
+
+			const connection c = transmitter.get_channel().connect([] {});
+
+			future<aggregator_type> future =
+				transmitter.send(aggregator_type{}, promise<aggregator_type>{std::make_shared<aggregator_type>()});
+
+			const aggregator_type aggregator = future.get();
+			CHECK(aggregator.get_result_calls_number() == 1);
+		}
+		SECTION("non-void callbacks") {
+			using aggregator_type = box_aggregator<int>;
+
+			transmitter<aggregating_channel<int(int)>> transmitter;
+
+			const connection c = transmitter.get_channel().connect([](const int v) noexcept { return v; });
+
+			future<aggregator_type> future =
+				transmitter.send(aggregator_type{}, 1, promise<aggregator_type>{std::make_shared<aggregator_type>()});
+
+			const aggregator_type aggregator = future.get();
+			CHECK(aggregator.get_results() == std::vector<int>{1});
 		}
 	}
 	SECTION("testing comparing functions") {

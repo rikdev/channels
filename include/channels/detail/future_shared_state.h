@@ -54,14 +54,14 @@ namespace detail {
 // | callback 1 | ... | callback n |     | future |
 // |____________|     |____________|     |________|
 
-template<typename T>
+template<typename T, typename Promise>
 class future_shared_state {
 public:
 	using value_type = T;
 
-	future_shared_state() = default;
-	explicit future_shared_state(const T& v) noexcept(std::is_nothrow_copy_constructible<T>::value);
-	explicit future_shared_state(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value);
+	template<typename U, typename P>
+	future_shared_state(U&& value, P&& promise)
+		noexcept(std::is_nothrow_constructible<T, U>::value && std::is_nothrow_constructible<Promise, P>::value);
 
 	future_shared_state(const future_shared_state&) = delete;
 	future_shared_state(future_shared_state&&) = delete;
@@ -73,36 +73,34 @@ public:
 	CHANNELS_NODISCARD bool is_ready() const noexcept;
 	void make_ready(std::exception_ptr exception = nullptr);
 
-	CHANNELS_NODISCARD std::future<T> get_future();
+	CHANNELS_NODISCARD decltype(auto) get_future();
 
 	CHANNELS_NODISCARD value_type& get_value() noexcept;
 
 private:
 	value_type value_;
 	std::atomic<bool> ready_{false};
-	std::promise<T> promise_; // \todo use custom future instead std::promise
+	Promise promise_;
 };
 
 // implementation
 
-template<typename T>
-future_shared_state<T>::future_shared_state(const T& v) noexcept(std::is_nothrow_copy_constructible<T>::value)
-	: value_{v}
+template<typename T, typename Promise>
+template<typename U, typename P>
+future_shared_state<T, Promise>::future_shared_state(U&& value, P&& promise)
+	noexcept(std::is_nothrow_constructible<T, U>::value && std::is_nothrow_constructible<Promise, P>::value)
+	: value_{std::forward<U>(value)}
+	, promise_(std::forward<P>(promise))
 {}
 
-template<typename T>
-future_shared_state<T>::future_shared_state(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value)
-	: value_{std::move(v)}
-{}
-
-template<typename T>
-bool future_shared_state<T>::is_ready() const noexcept
+template<typename T, typename Promise>
+bool future_shared_state<T, Promise>::is_ready() const noexcept
 {
 	return ready_.load();
 }
 
-template<typename T>
-void future_shared_state<T>::make_ready(std::exception_ptr exception)
+template<typename T, typename Promise>
+void future_shared_state<T, Promise>::make_ready(std::exception_ptr exception)
 {
 	if (ready_.exchange(true))
 		throw std::future_error{std::future_errc::promise_already_satisfied};
@@ -115,14 +113,14 @@ void future_shared_state<T>::make_ready(std::exception_ptr exception)
 	promise_.set_value(std::move(value_));
 }
 
-template<typename T>
-std::future<T> future_shared_state<T>::get_future()
+template<typename T, typename Promise>
+decltype(auto) future_shared_state<T, Promise>::get_future()
 {
 	return promise_.get_future();
 }
 
-template<typename T>
-typename future_shared_state<T>::value_type& future_shared_state<T>::get_value() noexcept
+template<typename T, typename Promise>
+typename future_shared_state<T, Promise>::value_type& future_shared_state<T, Promise>::get_value() noexcept
 {
 	assert(!is_ready()); // NOLINT
 

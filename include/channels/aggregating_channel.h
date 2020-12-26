@@ -80,11 +80,13 @@ protected:
 	///       threads they will wait for the queue to access the aggregator.
 	/// \param aggregator Reference to the aggregator. Aggregator type must match the concept `ChannelAggregator`.
 	/// \param args Arguments to pass to the callback functions.
+	/// \param promise A std::promise like object that pass filled aggregator from the `aggregating_channel` to
+	///                the sender.
 	/// \return Future to aggregator. When all callback functions in all executors are completed, the future will be
 	///         ready. If the aggregator throws an exception it will be returned to the future.
 	/// \pre `is_valid() == true`. The behavior is undefined if `is_valid() == false` before the call to this method.
-	template<typename Aggregator>
-	CHANNELS_NODISCARD std::future<std::decay_t<Aggregator>> send(Aggregator&& aggregator, Ts... args);
+	template<typename Aggregator, typename Promise = std::promise<std::decay_t<Aggregator>>>
+	CHANNELS_NODISCARD decltype(auto) send(Aggregator&& aggregator, Ts... args, Promise&& promise = {});
 
 private:
 	template<typename Callback>
@@ -147,7 +149,7 @@ protected:
 	{}
 };
 
-template<typename Aggregator>
+template<typename Aggregator, typename Promise>
 class execution_shared_state_base : public virtual execution_shared_state_interface_base {
 	static_assert(
 		std::is_nothrow_move_constructible<Aggregator>::value && std::is_nothrow_move_assignable<Aggregator>::value,
@@ -187,15 +189,15 @@ public:
 		return future_shared_state_.is_ready();
 	}
 
-	CHANNELS_NODISCARD std::future<Aggregator> get_future()
+	CHANNELS_NODISCARD decltype(auto) get_future()
 	{
 		return future_shared_state_.get_future();
 	}
 
 protected:
-	template<typename A>
-	explicit execution_shared_state_base(A&& aggregator)
-		: future_shared_state_{std::forward<A>(aggregator)}
+	template<typename A, typename P>
+	explicit execution_shared_state_base(A&& aggregator, P&& promise)
+		: future_shared_state_{std::forward<A>(aggregator), std::forward<P>(promise)}
 	{}
 
 	CHANNELS_NODISCARD std::unique_lock<std::mutex> get_aggregator_lock()
@@ -236,7 +238,7 @@ protected:
 
 private:
 	std::mutex aggregator_mutex_;
-	detail::future_shared_state<Aggregator> future_shared_state_;
+	detail::future_shared_state<Aggregator, Promise> future_shared_state_;
 };
 
 #ifdef _MSC_VER
@@ -245,10 +247,10 @@ private:
 #pragma warning(disable: 4250)
 #endif
 
-template<typename Aggregator, typename R>
+template<typename Aggregator, typename Promise, typename R>
 class execution_shared_state_result_base
 	: public virtual execution_shared_state_result_interface_base<R>
-	, public execution_shared_state_base<Aggregator> {
+	, public execution_shared_state_base<Aggregator, Promise> {
 public:
 	void apply_result(R&& result) final
 	{
@@ -266,13 +268,13 @@ public:
 	}
 
 protected:
-	using execution_shared_state_base<Aggregator>::execution_shared_state_base;
+	using execution_shared_state_base<Aggregator, Promise>::execution_shared_state_base;
 };
 
-template<typename Aggregator>
-class execution_shared_state_result_base<Aggregator, void>
+template<typename Aggregator, typename Promise>
+class execution_shared_state_result_base<Aggregator, Promise, void>
 	: public virtual execution_shared_state_result_interface_base<void>
-	, public execution_shared_state_base<Aggregator> {
+	, public execution_shared_state_base<Aggregator, Promise> {
 public:
 	void apply_result() final
 	{
@@ -290,19 +292,20 @@ public:
 	}
 
 protected:
-	using execution_shared_state_base<Aggregator>::execution_shared_state_base;
+	using execution_shared_state_base<Aggregator, Promise>::execution_shared_state_base;
 };
 
-template<typename Aggregator, typename R, typename... Ts>
+template<typename Aggregator, typename Promise, typename R, typename... Ts>
 class execution_shared_state final
 	: public execution_shared_state_interface<R, Ts...>
-	, public execution_shared_state_result_base<Aggregator, R>
+	, public execution_shared_state_result_base<Aggregator, Promise, R>
 {
 public:
-	template<typename A, typename... Args>
-	explicit execution_shared_state(A&& aggregator, Args&&... args)
+	template<typename A, typename P, typename... Args>
+	explicit execution_shared_state(A&& aggregator, P&& promise, Args&&... args)
 		: execution_shared_state_interface<R, Ts...>{std::forward<Args>(args)...}
-		, execution_shared_state_result_base<Aggregator, R>{std::forward<A>(aggregator)}
+		, execution_shared_state_result_base<Aggregator, Promise, R>{
+			std::forward<A>(aggregator), std::forward<P>(promise)}
 	{}
 };
 
@@ -385,14 +388,14 @@ connection aggregating_channel<R(Ts...)>::connect(Executor&& executor, Callback&
 }
 
 template<typename R, typename... Ts>
-template<typename Aggregator>
-std::future<std::decay_t<Aggregator>> aggregating_channel<R(Ts...)>::send(Aggregator&& aggregator, Ts... args)
+template<typename Aggregator, typename Promise>
+decltype(auto) aggregating_channel<R(Ts...)>::send(Aggregator&& aggregator, Ts... args, Promise&& promise)
 {
 	using execution_shared_state_type =
-		aggregating_channel_detail::execution_shared_state<std::decay_t<Aggregator>, R, Ts...>;
-	auto execution_shared_state =
-		std::make_shared<execution_shared_state_type>(std::forward<Aggregator>(aggregator), std::forward<Ts>(args)...);
-	auto future = execution_shared_state->get_future();
+		aggregating_channel_detail::execution_shared_state<std::decay_t<Aggregator>, std::decay_t<Promise>, R, Ts...>;
+	auto execution_shared_state = std::make_shared<execution_shared_state_type>(
+			std::forward<Aggregator>(aggregator), std::forward<Promise>(promise), std::forward<Ts>(args)...);
+	decltype(auto) future = execution_shared_state->get_future();
 
 	base_type::send(std::move(execution_shared_state));
 	return future;
