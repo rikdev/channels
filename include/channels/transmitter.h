@@ -37,6 +37,11 @@ class transmitter {
 public:
 	using channel_type = Channel;
 
+	/// Constructs the `transmitter` object and initialize the channel with a shared state.
+	/// \param args Pass arguments to the channel's constructor.
+	template<typename... Args>
+	explicit transmitter(Args&&... args);
+
 	/// Sends args to the channel.
 	/// \note This method is thread safe.
 	template<typename... Args>
@@ -55,6 +60,12 @@ private:
 // implementation
 
 // transmitter
+
+template<typename Channel>
+template<typename... Args>
+transmitter<Channel>::transmitter(Args&&... args)
+	: channel_{std::forward<Args>(args)...}
+{}
 
 template<typename Channel>
 template<typename... Args>
@@ -78,9 +89,10 @@ class transmitter<Channel>::transmit_channel : public Channel {
 	using base_type = Channel;
 
 public:
-	/// Default constructor. Constructs a `transmit_channel` object with shared state.
-	transmit_channel()
-		: base_type{typename base_type::make_shared_state_tag{}}
+	/// Constructs a `transmit_channel` object with a shared state.
+	template<typename... Args>
+	explicit transmit_channel(Args&&... args)
+		: base_type{typename base_type::make_shared_state_tag{}, std::forward<Args>(args)...}
 	{}
 
 	/// Sends args to the channel.

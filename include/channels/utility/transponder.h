@@ -60,14 +60,14 @@ public:
 	/// Constructs `transponder` object and connects to source_channel.
 	/// \see transponder::assign
 	/// \post `get_channel().is_valid() == true`.
-	template<typename SourceChannel, typename Callback>
-	transponder(const SourceChannel& source_channel, Callback callback);
+	template<typename SourceChannel, typename Callback, typename... Args>
+	transponder(const SourceChannel& source_channel, Callback&& callback, Args&&... args);
 
 	/// Constructs `transponder` object and connects to `source_channel`.
 	/// \see transponder::assign
 	/// \post `get_channel().is_valid() == true`.
-	template<typename SourceChannel, typename Executor, typename Callback>
-	transponder(const SourceChannel& source_channel, Executor executor, Callback callback);
+	template<typename SourceChannel, typename Executor, typename Callback, typename... Args>
+	transponder(const SourceChannel& source_channel, Executor&& executor, Callback&& callback, Args&&... args);
 
 	/// Connects callback to source_channel.
 	/// \param source_channel Reference to which the callback function will be connected.
@@ -76,15 +76,16 @@ public:
 	///                 Callback type must match the concept `std::Invocable<Callback, transmitter_type&, Ts...>` where
 	///                 transmitter_type See definition of the `transmitter_type` in this class.
 	///                 Ts - types of parameters for source channel.
+	/// \param args Arguments that pass to the transponder's transmitter.
 	/// \post `get_channel().is_valid() == true`.
-	template<typename SourceChannel, typename Callback>
-	void assign(const SourceChannel& source_channel, Callback callback);
+	template<typename SourceChannel, typename Callback, typename... Args>
+	void assign(const SourceChannel& source_channel, Callback&& callback, Args&&... args);
 
 	/// Same as previous method `transponder::assign` but additionally has the parameter executor.
 	/// \see `channel::connect`.
 	/// \post `get_channel().is_valid() == true`.
-	template<typename SourceChannel, typename Executor, typename Callback>
-	void assign(const SourceChannel& source_channel, Executor executor, Callback callback);
+	template<typename SourceChannel, typename Executor, typename Callback, typename... Args>
+	void assign(const SourceChannel& source_channel, Executor&& executor, Callback&& callback, Args&&... args);
 
 	/// Disconnect from source channel and reset destination channel.
 	/// \post `get_channel().is_valid() == false`.
@@ -160,39 +161,47 @@ filter_adaptor(Predicate)->filter_adaptor<Predicate>;
 // transponder
 
 template<typename Channel>
-template<typename SourceChannel, typename Callback>
-transponder<Channel>::transponder(const SourceChannel& source_channel, Callback callback)
+template<typename SourceChannel, typename Callback, typename... Args>
+transponder<Channel>::transponder(const SourceChannel& source_channel, Callback&& callback, Args&&... args)
 {
-	assign(source_channel, std::move(callback));
+	assign(source_channel, std::forward<Callback>(callback), std::forward<Args>(args)...);
 }
 
 template<typename Channel>
-template<typename SourceChannel, typename Executor, typename Callback>
-transponder<Channel>::transponder(const SourceChannel& source_channel, Executor executor, Callback callback)
+template<typename SourceChannel, typename Executor, typename Callback, typename... Args>
+transponder<Channel>::transponder(
+	const SourceChannel& source_channel, Executor&& executor, Callback&& callback, Args&&... args)
 {
-	assign(source_channel, std::move(executor), std::move(callback));
+	assign(
+		source_channel,
+		std::forward<Executor>(executor),
+		std::forward<Callback>(callback),
+		std::forward<Args>(args)...);
 }
 
 template<typename Channel>
-template<typename SourceChannel, typename Callback>
-void transponder<Channel>::assign(const SourceChannel& source_channel, Callback callback)
+template<typename SourceChannel, typename Callback, typename... Args>
+void transponder<Channel>::assign(const SourceChannel& source_channel, Callback&& callback, Args&&... args)
 {
 	static_assert(is_channel_v<SourceChannel>, "SourceChannel must be channel");
 
-	auto transmitter = reactive_transmitter<Callback>(std::move(callback));
+	reactive_transmitter<std::decay_t<Callback>> transmitter{
+		std::forward<Callback>(callback), std::forward<Args>(args)...};
 	channel_ = transmitter.get_channel();
 	connection_ = source_channel.connect(std::move(transmitter));
 }
 
 template<typename Channel>
-template<typename SourceChannel, typename Executor, typename Callback>
-void transponder<Channel>::assign(const SourceChannel& source_channel, Executor executor, Callback callback)
+template<typename SourceChannel, typename Executor, typename Callback, typename... Args>
+void transponder<Channel>::assign(
+	const SourceChannel& source_channel, Executor&& executor, Callback&& callback, Args&&... args)
 {
 	static_assert(is_channel_v<SourceChannel>, "SourceChannel must be channel");
 
-	auto transmitter = reactive_transmitter<Callback>(std::move(callback));
+	reactive_transmitter<std::decay_t<Callback>> transmitter{
+		std::forward<Callback>(callback), std::forward<Args>(args)...};
 	channel_ = transmitter.get_channel();
-	connection_ = source_channel.connect(std::move(executor), std::move(transmitter));
+	connection_ = source_channel.connect(std::forward<Executor>(executor), std::move(transmitter));
 }
 
 template<typename Channel>
@@ -214,8 +223,10 @@ template<typename Channel>
 template<typename Callback>
 class transponder<Channel>::reactive_transmitter {
 public:
-	constexpr explicit reactive_transmitter(Callback callback)
-		: callback_{std::move(callback)}
+	template<typename C, typename... Args>
+	constexpr explicit reactive_transmitter(C&& callback, Args&&... args)
+		: callback_{std::forward<C>(callback)}
+		, transmitter_{std::forward<Args>(args)...}
 	{}
 
 	template<typename... Args>
