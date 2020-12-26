@@ -57,8 +57,8 @@ public:
 	CHANNELS_NODISCARD connection connect(Executor&& executor, Callback&& callback) const;
 
 	/// Returns buffered value.
-	/// \note If the `buffered_channel` object hasn't a value then `static_cast<bool>(get_value()) == false` otherwise
-	///       `static_cast<bool>(get_value()) == false`
+	/// \note The `shared_value_type` is type like std::optional. If the `buffered_channel` object hasn't a value
+	///       then `static_cast<bool>(get_value()) == false` otherwise `static_cast<bool>(get_value()) == true`
 	/// \throw channel_error If `is_valid() == false`.
 	CHANNELS_NODISCARD shared_value_type get_value() const;
 
