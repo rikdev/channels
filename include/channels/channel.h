@@ -69,10 +69,6 @@ class channel {
 	using shared_value_type = typename shared_state_type::shared_value_type;
 
 public:
-	/// Equals true if the `send` method can be called with parameters of type `Args`.
-	template<typename... Args>
-	static constexpr bool is_applicable = std::is_constructible<shared_value_type, cow::in_place_t, Args...>::value;
-
 	/// Constructs a `channel` object with no shared state.
 	/// \post `is_valid() == false`.
 	channel() = default;
@@ -120,13 +116,11 @@ protected:
 	/// Calls all connected callback functions and passes arguments to them.
 	/// \note This method is thread safe.
 	/// \param args Arguments to pass to the callback functions.
-	///             Types `Args` must be convertible to template channel parameters `Ts`.
 	/// \throw callbacks_exception If one or more either callback function or `execute` function threw exceptions.
 	/// \note If the callback function or the `execute` function throws an exception this method doesn't stop executing
 	///       but calls the remaining callback functions and throws the `callbacks_exception`.
 	/// \pre `is_valid() == true`. The behavior is undefined if `is_valid() == false` before the call to this method.
-	template<typename... Args>
-	void send(Args&&... args);
+	void send(Ts... args);
 
 private:
 	template<typename... Args>
@@ -171,15 +165,12 @@ channel<Ts...>::channel(make_shared_state_tag)
 {}
 
 template<typename... Ts>
-template<typename... Args>
-void channel<Ts...>::send(Args&&... args)
+void channel<Ts...>::send(Ts... args)
 {
-	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
-
 	assert(shared_state_); // NOLINT
 
 	callbacks_exception::exceptions_type exceptions;
-	const shared_value_type shared_value{cow::in_place, std::forward<Args>(args)...};
+	const shared_value_type shared_value{cow::in_place, std::forward<Ts>(args)...};
 	for (typename shared_state_type::invocable_socket& socket : shared_state_->get_sockets()) {
 		try {
 			socket(shared_value);

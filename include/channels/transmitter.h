@@ -95,14 +95,7 @@ public:
 		: base_type{typename base_type::make_shared_state_tag{}, std::forward<Args>(args)...}
 	{}
 
-	/// Sends args to the channel.
-	/// \note It just calls the method Channel::send
-	/// \note This method is thread safe.
-	template<typename... Args>
-	decltype(auto) send(Args&&... args)
-	{
-		return Channel::send(std::forward<Args>(args)...);
-	}
+	using Channel::send;
 };
 
 } // namespace channels

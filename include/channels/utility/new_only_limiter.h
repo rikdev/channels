@@ -29,14 +29,14 @@ protected:
 	/// Invokes base_type::send if `value` argument isn't equal to `base_type::get_value()` result.
 	/// \warning This class isn't thread-safe.
 	template<typename... Args>
-	void send(Args&&... value);
+	std::enable_if_t<is_applicable_v<Channel, Args...>> send(Args&&... value);
 };
 
 // implementation
 
 template<typename Channel>
 template<typename... Args>
-void new_only_limiter<Channel>::send(Args&&... value)
+std::enable_if_t<is_applicable_v<Channel, Args...>> new_only_limiter<Channel>::send(Args&&... value)
 {
 	if (this->get_value() == std::tuple<std::add_const_t<std::add_lvalue_reference_t<Args>>...>{value...})
 		return;

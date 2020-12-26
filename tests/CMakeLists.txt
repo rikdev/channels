@@ -19,6 +19,7 @@ add_executable(unit_tests
   sync_connection_manager_test.cpp
   transponder_test.cpp
   tuple_elvis_test.cpp
+  type_traits_test.cpp
   # function main
   main.cpp
 )

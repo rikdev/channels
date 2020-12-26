@@ -24,8 +24,8 @@ TEST_CASE("Testing class transponder", "[transponder]") {
 		transmitter<channel<std::string>> source_transmitter;
 		using channel_type = buffered_channel<std::size_t>;
 		const auto callback = [](transmitter<channel_type>& transmitter, const std::string& s) mutable {
-				transmitter.send(s.length());
-			};
+			transmitter.send(s.length());
+		};
 		channel_type destination_channel;
 
 		SECTION("without executor") {
@@ -173,13 +173,13 @@ TEMPLATE_TEST_CASE_SIG("Testing class optional", "[optional]", ((std::size_t Ind
 		transmitter<typename channel_selector<Index>::template type<std::size_t, std::string>> transmitter;
 
 		struct {
-			std::size_t length{ 0 };
+			std::size_t length{0};
 			std::string text;
 		} result;
 		const connection cn = transmitter.get_channel().connect(
 			[&result](const std::size_t l, const std::string& s) {
-			result.length = l;
-			result.text = s;
+				result.length = l;
+				result.text = s;
 			});
 
 		adaptor(transmitter, test_text);

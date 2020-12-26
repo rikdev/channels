@@ -554,9 +554,18 @@ TEST_CASE("Testing class channel", "[channel]") {
 			using callback_type = std::function<void()>;
 
 			explicit notifier(callback_type callback) : callback_{std::move(callback)} {}
-			~notifier() { callback_(); }
+			~notifier()
+			{
+				if (callback_)
+					callback_();
+			}
 
-			notifier(notifier&&) = delete;
+			notifier(notifier&& other)
+				: callback_{std::move(other.callback_)}
+			{
+				other.callback_ = nullptr;
+			}
+
 			notifier& operator==(notifier&&) = delete;
 			notifier(const notifier&) = delete;
 			notifier& operator==(const notifier&) = delete;
@@ -575,7 +584,7 @@ TEST_CASE("Testing class channel", "[channel]") {
 		const connection connection2 = channel.connect(&executor, [](const notifier&) {}); // with executor
 
 		unsigned calls_number = 0;
-		transmitter.send([&calls_number] { ++calls_number; });
+		transmitter.send(notifier{[&calls_number] { ++calls_number; }});
 		CHECK(calls_number == 0u);
 
 		executor.run_all_tasks();
@@ -600,33 +609,6 @@ TEST_CASE("Testing class channel", "[channel]") {
 			const channel_type& channel2 = transmitter2.get_channel();
 
 			CHECK_FALSE(channel1 == channel2);
-		}
-	}
-	SECTION("testing is_applicable") {
-		SECTION("channel arguments is empty, is_applicable arguments is empty") {
-			constexpr bool is_applicable = channel<>::is_applicable<>;
-
-			CHECK(is_applicable);
-		}
-		SECTION("channel arguments isn't empty (but default constructible), is_applicable arguments is empty") {
-			constexpr bool is_applicable = channel<int>::is_applicable<>;
-
-			CHECK(is_applicable);
-		}
-		SECTION("channel arguments is empty, is_applicable arguments isn't empty") {
-			constexpr bool is_applicable = channel<>::is_applicable<int>;
-
-			CHECK_FALSE(is_applicable);
-		}
-		SECTION("channel arguments is constructible from is_applicable arguments") {
-			constexpr bool is_applicable = channel<std::string, double>::is_applicable<const char*, float>;
-
-			CHECK(is_applicable);
-		}
-		SECTION("channel arguments isn't constructible from is_applicable arguments") {
-			constexpr bool is_applicable = channel<std::string, double>::is_applicable<int, float>;
-
-			CHECK_FALSE(is_applicable);
 		}
 	}
 }

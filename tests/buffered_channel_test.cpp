@@ -571,37 +571,11 @@ TEST_CASE("Testing class buffered_channel", "[buffered_channel]") {
 
 		CHECK_FALSE(channel.get_value());
 
-		transmitter.send(272);
+		transmitter.send(tools::tracker{272});
 		REQUIRE(channel.get_value());
 		const tools::tracker& tracker = std::get<0>(*channel.get_value());
 		CHECK(tracker.get_value() == 272);
-		CHECK(tracker.get_generation() == 1u);
-	}
-	SECTION("testing method get_value for non-copyable and non-movable value") {
-		struct test_struct {
-			explicit test_struct(const int v)
-				: f{v}
-			{}
-
-			test_struct(const test_struct&) = delete;
-			test_struct(test_struct&&) = delete;
-			test_struct& operator=(const test_struct&) = delete;
-			test_struct& operator=(test_struct&&) = delete;
-
-			const int f;
-		};
-
-		using channel_type = buffered_channel<test_struct>;
-		transmitter<channel_type> transmitter;
-		const channel_type& channel = transmitter.get_channel();
-
-		transmitter.send(1);
-		REQUIRE(channel.get_value());
-		CHECK(std::get<0>(*channel.get_value()).f == 1);
-
-		transmitter.send(2);
-		REQUIRE(channel.get_value());
-		CHECK(std::get<0>(*channel.get_value()).f == 2);
+		CHECK(tracker.get_copy_generation() == 0u);
 	}
 	SECTION("testing method get_value for invalid channel") {
 		const buffered_channel<> channel;
@@ -627,33 +601,6 @@ TEST_CASE("Testing class buffered_channel", "[buffered_channel]") {
 			const channel_type& channel2 = transmitter2.get_channel();
 
 			CHECK_FALSE(channel1 == channel2);
-		}
-	}
-	SECTION("testing is_applicable") {
-		SECTION("channel arguments is empty, is_applicable arguments is empty") {
-			constexpr bool is_applicable = buffered_channel<>::is_applicable<>;
-
-			CHECK(is_applicable);
-		}
-		SECTION("channel arguments isn't empty (but default constructible), is_applicable arguments is empty") {
-			constexpr bool is_applicable = buffered_channel<int>::is_applicable<>;
-
-			CHECK(is_applicable);
-		}
-		SECTION("channel arguments is empty, is_applicable arguments isn't empty") {
-			constexpr bool is_applicable = buffered_channel<>::is_applicable<int>;
-
-			CHECK_FALSE(is_applicable);
-		}
-		SECTION("channel arguments is constructible from is_applicable arguments") {
-			constexpr bool is_applicable = buffered_channel<std::string, double>::is_applicable<const char*, float>;
-
-			CHECK(is_applicable);
-		}
-		SECTION("channel arguments isn't constructible from is_applicable arguments") {
-			constexpr bool is_applicable = buffered_channel<std::string, double>::is_applicable<int, float>;
-
-			CHECK_FALSE(is_applicable);
 		}
 	}
 }

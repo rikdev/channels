@@ -29,7 +29,7 @@ protected:
 	/// First call invokes base_type::send next calls throws channels::transmitter_error
 	/// \note This method is thread safe.
 	/// \throw channels::transmitter_error If this method is called more than once
-	template<typename... Args>
+	template<typename... Args, std::enable_if_t<is_applicable_v<Channel, Args...>, int> = 0>
 	decltype(auto) send(Args&&... value);
 
 private:
@@ -39,7 +39,7 @@ private:
 // implementation
 
 template<typename Channel>
-template<typename... Args>
+template<typename... Args, std::enable_if_t<is_applicable_v<Channel, Args...>, int>>
 decltype(auto) send_once_limiter<Channel>::send(Args&&... value)
 {
 	if (sended_.test_and_set(std::memory_order_relaxed))

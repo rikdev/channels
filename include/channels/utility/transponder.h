@@ -133,8 +133,8 @@ transform_adaptor(Function)->transform_adaptor<Function>;
 
 /// It is an adaptor for the class `transponder` that passes arguments to the transmitter
 /// if `filter_predicate` function return true.
-/// \param Function is a type of predicate function.
-///        This type must match the concept `std::predicate<Function, Ts...>` where
+/// \param Predicate is a type of predicate function.
+///        This type must match the concept `std::predicate<Predicate, Ts...>` where
 ///                         Ts - types of parameters for transponder source channel.
 ///
 /// Example:
@@ -268,9 +268,9 @@ public:
 	}
 
 	template<typename Transmitter, typename... Args>
-	std::enable_if_t <
+	std::enable_if_t<
 		!std::is_void<function_result_type<Args...>>::value
-		&& Transmitter::channel_type::template is_applicable<function_result_type<Args...>>>
+		&& is_applicable_v<typename Transmitter::channel_type, function_result_type<Args...>>>
 	operator()(Transmitter& transmitter, Args&&... args)
 	{
 		decltype(auto) result = detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);
@@ -280,12 +280,13 @@ public:
 	template<typename Transmitter, typename... Args>
 	std::enable_if_t<
 		!std::is_void<function_result_type<Args...>>::value
-		&& !Transmitter::channel_type::template is_applicable<function_result_type<Args...>>>
+		&& !is_applicable_v<typename Transmitter::channel_type, function_result_type<Args...>>>
 	operator()(Transmitter& transmitter, Args&&... args)
 	{
+		auto sender = [&transmitter](auto&&... a) { transmitter.send(std::forward<decltype(a)>(a)...); };
 		// transform_function_ must return tuple object
 		decltype(auto) result = detail::compatibility::invoke(transform_function_, std::forward<Args>(args)...);
-		detail::compatibility::apply(transmitter, std::move(result));
+		detail::compatibility::apply(std::move(sender), std::move(result));
 	}
 
 private:

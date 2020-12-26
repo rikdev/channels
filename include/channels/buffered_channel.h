@@ -34,10 +34,6 @@ public:
 	/// Looks like `std::optional<std::tuple<Ts...>>`
 	using shared_value_type = typename shared_state::shared_value_type;
 
-	/// \see channels::is_applicable
-	template<typename... Args>
-	static constexpr bool is_applicable = std::is_constructible<shared_value_type, cow::in_place_t, Args...>::value;
-
 	/// \see channels::channel::channel
 	buffered_channel() = default;
 
@@ -71,8 +67,7 @@ protected:
 	/// \see get_value
 	/// \warning Calling this method from the callback function will deadlock. Except when the executor breaks the
 	///          stack.
-	template<typename... Args>
-	void send(Args&&... args);
+	void send(Ts... args);
 
 private:
 	template<typename... Args>
@@ -175,18 +170,15 @@ buffered_channel<Ts...>::buffered_channel(make_shared_state_tag)
 {}
 
 template<typename... Ts>
-template<typename... Args>
-void buffered_channel<Ts...>::send(Args&&... args)
+void buffered_channel<Ts...>::send(Ts... args)
 {
-	static_assert(is_applicable<Args...>, "Channel parameters must be constructible from Args");
-
 	shared_value_type shared_value;
 	typename shared_state::invocable_sockets_shared_view sockets_view;
 
 	{
 		typename shared_state::shared_value_unique_lock_type shared_value_lock;
 
-		std::tie(shared_value, shared_value_lock) = shared_state_->emplace_value(std::forward<Args>(args)...);
+		std::tie(shared_value, shared_value_lock) = shared_state_->emplace_value(std::forward<Ts>(args)...);
 		// get sockets under the shared_value_lock in order to avoid duplication of the message in the callback function
 		// when it is called from the connect method
 		sockets_view = shared_state_->get_sockets();

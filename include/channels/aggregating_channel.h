@@ -48,16 +48,9 @@ class aggregating_channel<R(Ts...)>
 	using execution_shared_state_interface = aggregating_channel_detail::execution_shared_state_interface<R, Ts...>;
 	using base_type = channel<std::shared_ptr<execution_shared_state_interface>>;
 
-	template<typename... Args>
-	struct is_applicable_type;
-
 public:
 	/// Return value type of callback functions
 	using aggregator_argument_type = R;
-
-	/// \see channels::is_applicable
-	template<typename... Args>
-	static constexpr bool is_applicable = is_applicable_type<Args...>::value;
 
 	/// \see channels::channel::channel
 	aggregating_channel() = default;
@@ -87,12 +80,11 @@ protected:
 	///       threads they will wait for the queue to access the aggregator.
 	/// \param aggregator Reference to the aggregator. Aggregator type must match the concept `ChannelAggregator`.
 	/// \param args Arguments to pass to the callback functions.
-	///             Types `Args` must be convertible to template channel parameters `Ts`.
 	/// \return Future to aggregator. When all callback functions in all executors are completed, the future will be
 	///         ready. If the aggregator throws an exception it will be returned to the future.
 	/// \pre `is_valid() == true`. The behavior is undefined if `is_valid() == false` before the call to this method.
-	template<typename Aggregator, typename... Args>
-	CHANNELS_NODISCARD std::future<std::decay_t<Aggregator>> send(Aggregator&& aggregator, Args&&... args);
+	template<typename Aggregator>
+	CHANNELS_NODISCARD std::future<std::decay_t<Aggregator>> send(Aggregator&& aggregator, Ts... args);
 
 private:
 	template<typename Callback>
@@ -110,19 +102,6 @@ template<typename F>
 struct channel_traits<aggregating_channel<F>> {
 	static constexpr bool is_channel = true;
 };
-
-// aggregating_channel::is_applicable_type
-
-template<typename R, typename... Ts>
-template<typename... Args>
-struct aggregating_channel<R(Ts...)>::is_applicable_type : std::false_type {};
-
-// \todo add Aggregator checking
-template<typename R, typename... Ts>
-template<typename Aggregator, typename... Args>
-struct aggregating_channel<R(Ts...)>::is_applicable_type<Aggregator, Args...>
-	: std::is_constructible<std::tuple<Ts...>, Args... >
-{};
 
 namespace aggregating_channel_detail {
 
@@ -406,15 +385,13 @@ connection aggregating_channel<R(Ts...)>::connect(Executor&& executor, Callback&
 }
 
 template<typename R, typename... Ts>
-template<typename Aggregator, typename... Args>
-std::future<std::decay_t<Aggregator>> aggregating_channel<R(Ts...)>::send(
-	Aggregator&& aggregator, Args&&... args)
+template<typename Aggregator>
+std::future<std::decay_t<Aggregator>> aggregating_channel<R(Ts...)>::send(Aggregator&& aggregator, Ts... args)
 {
 	using execution_shared_state_type =
 		aggregating_channel_detail::execution_shared_state<std::decay_t<Aggregator>, R, Ts...>;
 	auto execution_shared_state =
-		std::make_shared<execution_shared_state_type>(
-			std::forward<Aggregator>(aggregator), std::forward<Args>(args)...);
+		std::make_shared<execution_shared_state_type>(std::forward<Aggregator>(aggregator), std::forward<Ts>(args)...);
 	auto future = execution_shared_state->get_future();
 
 	base_type::send(std::move(execution_shared_state));
